@@ -1,0 +1,2454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>The Cursed Chamber</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;font-family:'Georgia',serif;}
+canvas{display:block;position:fixed;inset:0;}
+
+#overlay{
+  position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:50;
+  background:radial-gradient(ellipse at center,#120000 0%,#000 100%);
+}
+#overlay h1{
+  font-size:3.4rem;letter-spacing:.35em;color:#c8a96e;margin-bottom:.4rem;
+  text-shadow:0 0 50px #cc0000,0 0 100px #880000;animation:flk 4s infinite;
+}
+.sub{font-size:.68rem;color:#4a2808;letter-spacing:.3em;text-transform:uppercase;margin-bottom:.3rem;}
+.desc{font-size:.8rem;color:#3a1e08;margin-bottom:1.5rem;letter-spacing:.06em;}
+.rules{font-size:.68rem;color:#3a2008;letter-spacing:.06em;line-height:2;text-align:center;
+  margin-bottom:2rem;border:1px solid #2a1004;padding:.8rem 2rem;background:rgba(10,4,0,.6);}
+.rules span{color:#8a5018;}
+#enter{padding:.9rem 3.2rem;border:1px solid #7a4808;background:transparent;color:#c8a96e;
+  font-size:.88rem;letter-spacing:.22em;cursor:pointer;font-family:'Georgia',serif;
+  text-transform:uppercase;transition:all .3s;}
+#enter:hover{border-color:#c8a96e;color:#ffd060;box-shadow:0 0 25px rgba(180,60,0,.5);}
+@keyframes flk{0%,18%,20%,52%,54%,100%{opacity:1;}19%,53%{opacity:.45;}}
+
+/* HUD */
+#hud{position:fixed;bottom:.9rem;left:50%;transform:translateX(-50%);
+  color:#2e1a06;font-size:.65rem;letter-spacing:.12em;pointer-events:none;z-index:10;}
+/* No crosshair — hands replace it */
+#ch{display:none;}
+
+#hint{position:fixed;top:1.2rem;left:50%;transform:translateX(-50%);
+  color:#ff5020;font-size:.8rem;letter-spacing:.09em;pointer-events:none;
+  text-align:center;text-shadow:0 0 14px #bb1100;opacity:0;transition:opacity .4s;
+  z-index:10;max-width:560px;line-height:1.7;padding:.3rem 1rem;background:rgba(0,0,0,.6);}
+#hint.on{opacity:1;}
+
+#rdots{position:fixed;top:1.1rem;right:1.4rem;color:#3a2008;font-size:.68rem;
+  letter-spacing:.1em;pointer-events:none;z-index:10;}
+.rd{display:inline-block;width:8px;height:8px;border-radius:50%;border:1px solid #3a2008;margin:0 2px;transition:all .6s;}
+.rd.lit{background:#c8a96e;border-color:#c8a96e;box-shadow:0 0 8px #c8a96e;}
+
+#hold{position:fixed;bottom:2.8rem;left:1.4rem;color:#2e1a06;font-size:.72rem;
+  pointer-events:none;z-index:10;letter-spacing:.06em;}
+#hold b{color:#c8a96e;}
+
+#prm{position:fixed;bottom:4.8rem;left:50%;transform:translateX(-50%);
+  color:#c8a96e;font-size:.76rem;letter-spacing:.14em;pointer-events:none;
+  text-align:center;opacity:0;transition:opacity .2s;z-index:10;
+  background:rgba(0,0,0,.65);padding:.32rem .9rem;border:1px solid #3a1604;}
+#prm.on{opacity:1;}
+
+#examine{position:fixed;bottom:3.6rem;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.92);border:1px solid #5a2408;color:#c8a96e;
+  padding:1rem 2rem;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s;
+  z-index:10;min-width:290px;}
+#examine.on{opacity:1;}
+#examine .en{font-size:.95rem;color:#ffd060;margin-bottom:.2rem;}
+#examine .es{font-size:1.8rem;margin:.2rem 0;color:#ff4000;}
+#examine .eo{font-size:.68rem;color:#666;}
+
+#blood{position:fixed;inset:0;pointer-events:none;z-index:8;background:rgba(0,0,0,0);transition:background .12s;}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:7;
+  background:radial-gradient(ellipse at center,transparent 38%,rgba(0,0,0,.85) 100%);}
+
+#popup{position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(0,0,0,.95);border:1px solid #5a2008;color:#c8a96e;
+  padding:1.2rem 2rem;text-align:center;pointer-events:none;opacity:0;
+  transition:opacity .3s;z-index:15;min-width:240px;font-size:.82rem;line-height:1.7;}
+#popup.on{opacity:1;}
+
+#win{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;
+  justify-content:center;z-index:60;background:radial-gradient(ellipse at center,#040200 0%,#000 100%);color:#c8a96e;}
+#win h2{font-size:2.6rem;letter-spacing:.2em;color:#ffd060;text-shadow:0 0 40px #ff8800;margin-bottom:1rem;animation:flk 3s infinite;}
+#win p{color:#444;margin:.3rem 0;font-size:.82rem;letter-spacing:.06em;}
+#win button{margin-top:2rem;padding:.7rem 2rem;border:1px solid #7a4808;background:transparent;
+  color:#c8a96e;font-family:'Georgia',serif;font-size:.82rem;letter-spacing:.15em;cursor:pointer;}
+#win button:hover{border-color:#c8a96e;}
+
+/* Door open flash overlay */
+#timer{
+  position:fixed;top:1.1rem;left:1.4rem;
+  font-family:'Courier New',monospace;font-size:1.1rem;letter-spacing:.12em;
+  color:#c8a030;pointer-events:none;z-index:10;
+  text-shadow:0 0 10px rgba(200,150,0,.5);
+}
+#timer.danger{color:#ff2200;text-shadow:0 0 14px #ff0000;animation:flk .5s infinite;}
+#timeup{
+  position:fixed;inset:0;display:none;flex-direction:column;align-items:center;
+  justify-content:center;z-index:70;
+  background:radial-gradient(ellipse at center,#1a0000 0%,#000 100%);color:#cc0000;
+}
+#timeup h2{font-size:3rem;letter-spacing:.3em;text-shadow:0 0 40px #ff0000;animation:flk .8s infinite;margin-bottom:1rem;}
+#timeup p{color:#550000;font-size:.9rem;letter-spacing:.1em;margin:.3rem 0;}
+#timeup button{margin-top:2rem;padding:.75rem 2.2rem;border:1px solid #660000;background:transparent;color:#cc0000;font-family:'Georgia',serif;font-size:.85rem;letter-spacing:.16em;cursor:pointer;}
+</style>
+</head>
+<body>
+<div id="overlay">
+  <div class="sub">ECE 576 · Virtual Reality · Rutgers University</div>
+  <h1>THE CURSED CHAMBER</h1>
+  <div class="desc">A demon ritual sealed this room. Only the three relics can break it.</div>
+  <div class="rules">
+    <span>SKULL OF MORGATH</span> — the iron chest needs a rusty key<br>
+    <span>AMULET OF BAEL</span> — the wardrobe opens only to the mirror runes<br>
+    <span>TOME OF SHADOWS</span> — the desk drawer answers to a marked book<br><br>
+    Find them. Place them on the altar in the correct order.<br>
+    The altar engravings show you what goes where.
+  </div>
+  <button id="enter">ENTER THE CHAMBER</button>
+</div>
+
+<div id="hud">WASD · LOOK · CLICK INTERACT · E DROP · G SKIP PUZZLE</div>
+<div id="ch"></div>
+<div id="hint"></div>
+<div id="blood"></div>
+<div id="vig"></div>
+<div id="timer">⏱ 10:00</div>
+<div id="doorflash"></div>
+<div id="timeup">
+  <h2>⌛ TIME IS UP</h2>
+  <p>The darkness swallowed you whole.</p>
+  <p style="color:#330000;font-size:.75rem;">The chamber claims another soul.</p>
+  <button onclick="location.reload()">TRY AGAIN</button>
+</div>
+<div id="rdots">RELICS&nbsp;<span class="rd" id="d0"></span><span class="rd" id="d1"></span><span class="rd" id="d2"></span></div>
+<div id="hold">HOLDING: <b id="hname">nothing</b></div>
+<div id="prm"></div>
+<div id="examine">
+  <div class="en" id="en"></div>
+  <div class="es" id="es"></div>
+  <div class="eo" id="eo"></div>
+</div>
+<div id="popup"></div>
+<div id="win">
+  <h2>GAME OVER · YOU WON</h2>
+  <p>You escaped the cursed pyramid into the Egyptian night.</p>
+  <p style="color:#222;font-size:.72rem;margin-top:.5rem;">The chamber is sealed behind you.</p>
+  <button onclick="location.reload()">ATTEMPT AGAIN</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════
+const S={
+  held:null, slots:[null,null,null], placed:0,
+  order:['skull','amulet','tome'], won:false,
+  chestOpen:false, wardOpen:false, deskOpen:false, locked:false,
+  hasChestKey:false, bookPulled:false, wardSolved:false,
+  wardRunes:[0,0,0],
+  outsideStarted:false, outsideWinTimer:null
+};
+
+// ══════════════════════════════════════════════════════════════
+//  RENDERER
+// ══════════════════════════════════════════════════════════════
+const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(1);
+renderer.shadowMap.enabled=false;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+document.body.appendChild(renderer.domElement);
+window.addEventListener('resize',()=>{
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  cam.aspect=window.innerWidth/window.innerHeight;
+  cam.updateProjectionMatrix();
+});
+
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x060100,.048);
+scene.background=new THREE.Color(0x060100);
+
+const cam=new THREE.PerspectiveCamera(72,window.innerWidth/window.innerHeight,.05,180);
+cam.position.set(0,1.65,4.0); scene.add(cam);
+
+// ══════════════════════════════════════════════════════════════
+//  SHORT-HANDS
+// ══════════════════════════════════════════════════════════════
+const mkc=(w,h,fn)=>{
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  fn(c.getContext('2d'),w,h);return new THREE.CanvasTexture(c);
+};
+const LB=o=>new THREE.MeshLambertMaterial(o);
+const BA=o=>new THREE.MeshBasicMaterial(o);
+const BX=(w,h,d,m)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
+const CY=(rt,rb,h,s,m)=>new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,s),m);
+const SP=(r,s,m)=>new THREE.Mesh(new THREE.SphereGeometry(r,s,s),m);
+const TR=(r,t,s,m)=>new THREE.Mesh(new THREE.TorusGeometry(r,t,8,s),m);
+const G=()=>new THREE.Group();
+const A=o=>{scene.add(o);return o;};
+
+// ══════════════════════════════════════════════════════════════
+//  TEXTURES
+// ══════════════════════════════════════════════════════════════
+
+// STONE WALL — dark horror brick with blood, cracks, runes
+const wallT=mkc(512,512,(x,w,h)=>{
+  // base dark stone
+  x.fillStyle='#181008';x.fillRect(0,0,w,h);
+  // brick grid — READABLE, not pitch black
+  const bw=72,bh=50;
+  for(let row=0;row<=Math.ceil(h/bh);row++){
+    const ox=(row%2)*36;
+    for(let col=0;col<=Math.ceil(w/bw);col++){
+      const px=col*bw+ox,py=row*bh;
+      const v=42+Math.floor(Math.random()*20);
+      x.fillStyle=`rgb(${v+6},${v-4},${v-10})`;
+      x.fillRect(px+2,py+2,bw-4,bh-4);
+      for(let n=0;n<28;n++){
+        x.fillStyle=`rgba(0,0,0,${Math.random()*.22})`;
+        x.fillRect(px+2+Math.random()*(bw-4),py+2+Math.random()*(bh-4),Math.random()*9+1,Math.random()*5+1);
+      }
+      // light edge highlight
+      x.fillStyle=`rgba(255,220,160,.04)`;x.fillRect(px+2,py+2,bw-4,2);
+    }
+  }
+  // Mortar lines
+  x.strokeStyle='rgba(0,0,0,.7)';x.lineWidth=2.5;
+  for(let row=0;row<=Math.ceil(h/bh);row++){
+    x.beginPath();x.moveTo(0,row*bh);x.lineTo(w,row*bh);x.stroke();
+    const ox=(row%2)*36;
+    for(let col=0;col<=Math.ceil(w/bw)+1;col++){
+      x.beginPath();x.moveTo(col*bw+ox,row*bh);x.lineTo(col*bw+ox,(row+1)*bh);x.stroke();
+    }
+  }
+  // Cracks
+  x.strokeStyle='rgba(0,0,0,.65)';x.lineWidth=1.5;
+  for(let i=0;i<14;i++){
+    x.beginPath();let cx2=Math.random()*w,cy2=Math.random()*h;x.moveTo(cx2,cy2);
+    for(let j=0;j<6;j++){cx2+=Math.random()*28-14;cy2+=Math.random()*28-14;x.lineTo(cx2,cy2);}
+    x.stroke();
+  }
+  // Blood drips — bold, visible
+  for(let i=0;i<9;i++){
+    const bx=Math.random()*w,blen=h*.25+Math.random()*h*.45;
+    x.shadowColor='#660000';x.shadowBlur=8;
+    const gr=x.createLinearGradient(bx,Math.random()*h*.25,bx+Math.random()*8,blen);
+    gr.addColorStop(0,`rgba(${120+Math.floor(Math.random()*60)},0,0,.95)`);
+    gr.addColorStop(.7,'rgba(60,0,0,.55)');gr.addColorStop(1,'rgba(20,0,0,0)');
+    x.fillStyle=gr;x.beginPath();
+    x.ellipse(bx,blen*.5,Math.random()*4+1.5,blen*.5,0,0,Math.PI*2);x.fill();
+    x.shadowBlur=0;
+    // drip tip
+    x.fillStyle='rgba(100,0,0,.7)';
+    x.beginPath();x.arc(bx,blen,Math.random()*5+2,0,Math.PI*2);x.fill();
+  }
+  // Glowing runes carved in
+  x.shadowColor='#cc2200';x.shadowBlur=16;
+  x.font='bold 19px serif';x.textAlign='center';
+  const runes='ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ'.split('');
+  for(let i=0;i<22;i++){
+    const rx=25+Math.random()*(w-50),ry=25+Math.random()*(h-50);
+    const v2=140+Math.floor(Math.random()*80);
+    x.fillStyle=`rgba(${v2},${Math.floor(Math.random()*25)},0,.8)`;
+    x.fillText(runes[i%runes.length],rx,ry);
+  }
+  x.shadowBlur=0;
+  // Ritual circles scratched in
+  for(let i=0;i<4;i++){
+    const rx=60+Math.random()*(w-120),ry=60+Math.random()*(h-120),rr=22+Math.random()*40;
+    x.strokeStyle=`rgba(${160+Math.floor(Math.random()*60)},0,0,${.45+Math.random()*.3})`;
+    x.lineWidth=1.5;x.shadowColor='#aa0000';x.shadowBlur=10;
+    x.beginPath();x.arc(rx,ry,rr,0,Math.PI*2);x.stroke();
+    for(let j=0;j<5;j++){
+      const a1=(j*4*Math.PI/5)-Math.PI/2,a2=((j+2)*4*Math.PI/5)-Math.PI/2;
+      x.beginPath();x.moveTo(rx+Math.cos(a1)*rr*.8,ry+Math.sin(a1)*rr*.8);
+      x.lineTo(rx+Math.cos(a2)*rr*.8,ry+Math.sin(a2)*rr*.8);x.stroke();
+    }
+    x.shadowBlur=0;
+  }
+  // Mold patches bottom
+  for(let i=0;i<8;i++){
+    const mg=x.createRadialGradient(Math.random()*w,h*.6+Math.random()*h*.4,0,Math.random()*w,h,50+Math.random()*70);
+    mg.addColorStop(0,'rgba(8,22,4,.4)');mg.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=mg;x.fillRect(0,0,w,h);
+  }
+});
+wallT.wrapS=wallT.wrapT=THREE.RepeatWrapping;wallT.repeat.set(2,1.4);
+
+// FLOOR — dark stone slabs with bright ritual circle
+const floorT=mkc(512,512,(x,w,h)=>{
+  x.fillStyle='#0c0806';x.fillRect(0,0,w,h);
+  const sw=80;
+  for(let r=0;r<Math.ceil(h/sw);r++)for(let c=0;c<Math.ceil(w/sw);c++){
+    const v=18+Math.floor(Math.random()*16);
+    x.fillStyle=`rgb(${v+3},${v},${v-4})`;x.fillRect(c*sw+1,r*sw+1,sw-2,sw-2);
+    for(let n=0;n<18;n++){x.fillStyle=`rgba(0,0,0,${Math.random()*.2})`;x.fillRect(c*sw+Math.random()*(sw-2),r*sw+Math.random()*(sw-2),Math.random()*9+1,Math.random()*5+1);}
+    x.strokeStyle='rgba(0,0,0,.5)';x.lineWidth=1.5;x.strokeRect(c*sw+1,r*sw+1,sw-2,sw-2);
+  }
+  const cx=w/2,cy=h/2;
+  x.shadowColor='#ff0000';x.shadowBlur=22;
+  x.strokeStyle='rgba(220,15,0,.95)';x.lineWidth=4.5;
+  x.beginPath();x.arc(cx,cy,220,0,Math.PI*2);x.stroke();
+  x.lineWidth=2.5;x.beginPath();x.arc(cx,cy,175,0,Math.PI*2);x.stroke();
+  x.lineWidth=2;x.beginPath();x.arc(cx,cy,130,0,Math.PI*2);x.stroke();
+  for(let i=0;i<5;i++){
+    const a=(i*4*Math.PI/5)-Math.PI/2,b=((i+2)*4*Math.PI/5)-Math.PI/2;
+    x.beginPath();x.moveTo(cx+Math.cos(a)*170,cy+Math.sin(a)*170);x.lineTo(cx+Math.cos(b)*170,cy+Math.sin(b)*170);x.stroke();
+  }
+  x.shadowBlur=8;x.font='bold 13px serif';x.fillStyle='rgba(200,10,0,.75)';x.textAlign='center';
+  const rr2='ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊᛏᛒᛖᛗᛚᛜᛞᛟ'.split('');
+  for(let i=0;i<24;i++){const a=(i/24)*Math.PI*2;x.fillText(rr2[i],cx+Math.cos(a)*200,cy+Math.sin(a)*200+5);}
+  x.shadowBlur=0;
+});
+floorT.wrapS=floorT.wrapT=THREE.RepeatWrapping;floorT.repeat.set(2,2);
+
+// CEILING — dark plank
+const ceilT=mkc(256,128,(x,w,h)=>{
+  x.fillStyle='#0a0502';x.fillRect(0,0,w,h);
+  for(let p=0;p<7;p++){
+    const px=p*(w/7),pw=w/7,v=9+Math.floor(Math.random()*7);
+    x.fillStyle=`rgb(${v+3},${v},${v-2})`;x.fillRect(px+1,0,pw-2,h);
+    for(let g=0;g<h;g+=3){x.fillStyle=`rgba(0,0,0,${Math.random()*.1})`;x.fillRect(px+1,g,pw-2,2);}
+  }
+  x.strokeStyle='rgba(0,0,0,.4)';x.lineWidth=1;
+  for(let p=0;p<8;p++){x.beginPath();x.moveTo(p*(w/7),0);x.lineTo(p*(w/7),h);x.stroke();}
+});
+ceilT.wrapS=ceilT.wrapT=THREE.RepeatWrapping;ceilT.repeat.set(5,4);
+
+// WOOD — furniture
+const woodT=mkc(128,128,(x,w,h)=>{
+  x.fillStyle='#140900';x.fillRect(0,0,w,h);
+  for(let i=0;i<h;i+=2){const v=7+Math.floor(Math.random()*9);x.fillStyle=`rgb(${v+4},${v},${v-2})`;x.fillRect(0,i,w,2);}
+  x.strokeStyle='rgba(0,0,0,.25)';x.lineWidth=1;
+  for(let i=0;i<6;i++){x.beginPath();x.moveTo(Math.random()*w,0);x.lineTo(Math.random()*w,h);x.stroke();}
+});
+woodT.wrapS=woodT.wrapT=THREE.RepeatWrapping;woodT.repeat.set(2,2);
+
+// ══════════════════════════════════════════════════════════════
+//  MATERIALS
+// ══════════════════════════════════════════════════════════════
+const wallM =LB({map:wallT});
+const floorM=LB({map:floorT});
+const ceilM =LB({map:ceilT,color:0x1e0e04});
+const woodM =LB({map:woodT,color:0x2e1408});
+const dkwM  =LB({color:0x160802});
+const mdwM  =LB({color:0x201006});
+const goldM =LB({color:0xb07808,emissive:new THREE.Color(.07,.035,0)});
+const brassM=LB({color:0x7a4e08});
+const ironM =LB({color:0x1c1c1c});
+const boneM =LB({color:0xcebb82});
+const candM =LB({color:0xe8d8a0});
+const glassM=LB({color:0x182418,transparent:true,opacity:.35});
+const redGlowM=BA({color:0xff4400});
+
+// ══════════════════════════════════════════════════════════════
+//  ROOM  (RD=14 so door has its own wall space)
+// ══════════════════════════════════════════════════════════════
+const RW=11, RH=4.8, RD=14;
+
+const doorOpenW=1.7, doorOpenH=2.9;
+const floorMesh=BX(RW,.14,RD,floorM);floorMesh.position.set(0,-.07,0);scene.add(floorMesh);
+const ceilMesh =BX(RW,.14,RD,ceilM);ceilMesh.position.set(0,RH+.07,0);scene.add(ceilMesh);
+
+// Back wall — split into LEFT panel, RIGHT panel, TOP panel around door opening
+// Panel width = (RW - doorOpenW) / 2
+const _sideW=(RW-doorOpenW)/2;
+const bwL=BX(_sideW,RH,.22,wallM);
+bwL.position.set(-(doorOpenW/2+_sideW/2),RH/2,-RD/2);scene.add(bwL);
+const bwR=BX(_sideW,RH,.22,wallM);
+bwR.position.set( (doorOpenW/2+_sideW/2),RH/2,-RD/2);scene.add(bwR);
+const bwT=BX(doorOpenW,RH-doorOpenH,.22,wallM);
+bwT.position.set(0,doorOpenH+(RH-doorOpenH)/2,-RD/2);scene.add(bwT);
+
+// front wall
+const fwM=BX(RW,RH,.22,wallM);fwM.position.set(0,RH/2,RD/2);scene.add(fwM);
+// left & right walls
+const lwM=BX(.22,RH,RD,wallM);lwM.position.set(-RW/2,RH/2,0);scene.add(lwM);
+const rwM=BX(.22,RH,RD,wallM);rwM.position.set( RW/2,RH/2,0);scene.add(rwM);
+
+// Ceiling beams — fewer for perf
+for(let i=-2;i<=2;i++){
+  const b=BX(RW,.22,.28,dkwM);b.position.set(0,RH-.11,i*2.8);scene.add(b);
+}
+// NO ridge beam — it caused the frame drop
+
+// Wainscoting lower walls
+[-RW/2+.18, RW/2-.18].forEach(px=>{
+  const p=BX(.16,1.3,RD-.3,dkwM);p.position.set(px,.65,0);scene.add(p);
+  const r=BX(.2,.08,RD-.3,mdwM);r.position.set(px,1.3,0);scene.add(r);
+  // Fewer dado posts
+  for(let z=-4;z<=4;z+=4){const post=BX(.08,1.3,.08,mdwM);post.position.set(px,.65,z);scene.add(post);}
+});
+// Back wall wainscoting — two pieces either side of door
+[-(doorOpenW/2+_sideW/2), (doorOpenW/2+_sideW/2)].forEach(px2=>{
+  const bwp=BX(_sideW,1.3,.16,dkwM);bwp.position.set(px2,.65,-RD/2+.14);scene.add(bwp);
+});
+
+// ══════════════════════════════════════════════════════════════
+//  EXIT DOOR — clearly visible, built into back wall opening
+// ══════════════════════════════════════════════════════════════
+const doorGrp=G(); const doorPanel=G();
+let doorAngle=0, doorOpen=false;
+
+// Stone arch above opening
+const archTop=BX(doorOpenW+.5,.5,.35,LB({map:wallT,color:0x2a1a10}));
+archTop.position.set(0,doorOpenH+.25,0);doorGrp.add(archTop);
+// Curved arch shape — torus half
+const archCurve=new THREE.Mesh(new THREE.TorusGeometry(.88,.18,8,20,Math.PI),LB({map:wallT,color:0x2a1a10}));
+archCurve.position.set(0,doorOpenH,.08);archCurve.rotation.z=Math.PI;doorGrp.add(archCurve);
+
+// Door frame jambs (visible stone surrounds)
+[-1,1].forEach(xs=>{
+  const jamb=BX(.24,doorOpenH+.1,.35,LB({map:wallT,color:0x2a1a10}));
+  jamb.position.set(xs*(doorOpenW/2+.12),doorOpenH/2,0);doorGrp.add(jamb);
+});
+// Threshold stone
+const thresh=BX(doorOpenW+.5,.12,.35,LB({color:0x221410}));
+thresh.position.set(0,.06,.05);doorGrp.add(thresh);
+
+// The actual DOOR PANEL (pivots left)
+// Main door — CLEARLY VISIBLE dark reddish-brown wood
+const dMain=BX(doorOpenW-.1,doorOpenH-.06,.14,LB({color:0x2e1006}));
+dMain.position.set((doorOpenW-.1)/2,doorOpenH/2,0);doorPanel.add(dMain);
+// Horizontal rail dividers (lighter wood strips for depth)
+[doorOpenH*.35,doorOpenH*.65].forEach(y=>{
+  const rail=BX(doorOpenW-.1,.07,.15,LB({color:0x3e1a0a}));rail.position.set((doorOpenW-.1)/2,y,0.01);doorPanel.add(rail);
+});
+// Door panels — recessed inset boxes
+[[doorOpenH*.15],[doorOpenH*.5],[doorOpenH*.82]].forEach(([y])=>{
+  const dp=BX(doorOpenW*.62,doorOpenH*.22,.08,LB({color:0x1e0a02}));dp.position.set((doorOpenW-.1)/2,y,.075);doorPanel.add(dp);
+  // Panel bead (gold trim around each inset)
+  const bead=BX(doorOpenW*.64,doorOpenH*.24,.06,goldM);bead.position.set((doorOpenW-.1)/2,y,.065);doorPanel.add(bead);
+});
+// Iron hinge plates — large and visible
+[.35,1.45,2.5].forEach(y=>{
+  const hp=BX(.14,.2,.2,ironM);hp.position.set(.07,y,.07);doorPanel.add(hp);
+  const hpPin=CY(.025,.025,.22,6,ironM);hpPin.rotation.z=Math.PI/2;hpPin.position.set(.07,y,.07);doorPanel.add(hpPin);
+});
+// Demon lock — GLOWING RED, very visible
+const lockT=mkc(96,96,(x,w,h)=>{
+  x.fillStyle='#0a0000';x.fillRect(0,0,w,h);
+  x.shadowColor='#ff0000';x.shadowBlur=20;
+  x.strokeStyle='#ee1100';x.lineWidth=2.5;
+  x.beginPath();x.arc(w/2,h/2,35,0,Math.PI*2);x.stroke();
+  x.beginPath();x.arc(w/2,h/2,22,0,Math.PI*2);x.stroke();
+  for(let i=0;i<5;i++){const a1=(i*4*Math.PI/5)-Math.PI/2,a2=((i+2)*4*Math.PI/5)-Math.PI/2;x.beginPath();x.moveTo(w/2+Math.cos(a1)*20,h/2+Math.sin(a1)*20);x.lineTo(w/2+Math.cos(a2)*20,h/2+Math.sin(a2)*20);x.stroke();}
+  x.font='bold 26px serif';x.fillStyle='#ff1100';x.textAlign='center';x.fillText('ᛟ',w/2,h/2+10);
+  x.shadowBlur=0;
+});
+const lockFace=new THREE.Mesh(new THREE.PlaneGeometry(.3,.3),LB({map:lockT,emissive:new THREE.Color(.5,0,0)}));
+lockFace.position.set((doorOpenW-.1)-0.22,1.5,.09);doorPanel.add(lockFace);
+const lockBody=BX(.3,.36,.2,ironM);lockBody.position.set((doorOpenW-.1)-0.22,1.5,.0);doorPanel.add(lockBody);
+// Iron door handle bar
+const handleBar=CY(.022,.022,.32,8,ironM);handleBar.rotation.z=Math.PI/2;handleBar.position.set((doorOpenW-.1)/2-.22,1.1,.1);doorPanel.add(handleBar);
+const hBall1=SP(.032,8,ironM);hBall1.position.set((doorOpenW-.1)/2-.06,1.1,.1);doorPanel.add(hBall1);
+const hBall2=SP(.032,8,ironM);hBall2.position.set((doorOpenW-.1)/2-.38,1.1,.1);doorPanel.add(hBall2);
+// Lock glow point light
+const lockGlow=new THREE.PointLight(0xff1100,1.5,2.0);lockGlow.position.set((doorOpenW-.1)/2+.3,1.5,.25);doorPanel.add(lockGlow);
+
+doorPanel.position.x=-(doorOpenW/2-.06);
+doorGrp.add(doorPanel);
+doorGrp.position.set(0,0,-RD/2+.12);
+scene.add(doorGrp);
+
+// ══════════════════════════════════════════════════════════════
+//  ANTECHAMBER — short hallway the player walks into after ritual
+//  The second locked door with keypad sits at the end.
+//  Code: 6923 — digits hidden around main room as clues
+// ══════════════════════════════════════════════════════════════
+const CZ=-RD/2; // back wall of main room at z = -7
+
+// ── Corridor geometry ─────────────────────────────────────────
+const CW=3.0, CH=3.6, CD=5.0; // corridor width, height, depth
+const corrZ=CZ-CD/2-.11; // centre of corridor
+
+// Floor, ceiling, side walls, back wall of corridor
+const corrFloor=BX(CW,.12,CD,LB({color:0x0c0804}));corrFloor.position.set(0,-.06,corrZ);scene.add(corrFloor);
+const corrCeil=BX(CW,.12,CD,LB({color:0x0a0502}));corrCeil.position.set(0,CH+.06,corrZ);scene.add(corrCeil);
+const corrWallL=BX(.18,CH,CD,LB({map:wallT,color:0x201208}));corrWallL.position.set(-CW/2,CH/2,corrZ);scene.add(corrWallL);
+const corrWallR=BX(.18,CH,CD,LB({map:wallT,color:0x201208}));corrWallR.position.set( CW/2,CH/2,corrZ);scene.add(corrWallR);
+
+// Back wall of corridor — has the SECOND DOOR with keypad
+const CZ2=CZ-CD-.11;
+const door2OpenW=1.3, door2OpenH=2.5;
+// Back wall left/right/top panels around door2
+const bk2L=BX((CW-door2OpenW)/2-.1,CH,.18,LB({map:wallT,color:0x201208}));
+bk2L.position.set(-(door2OpenW/2+(CW-door2OpenW)/4)-.05,CH/2,CZ2);scene.add(bk2L);
+const bk2R=BX((CW-door2OpenW)/2-.1,CH,.18,LB({map:wallT,color:0x201208}));
+bk2R.position.set( (door2OpenW/2+(CW-door2OpenW)/4)+.05,CH/2,CZ2);scene.add(bk2R);
+const bk2T=BX(CW,CH-door2OpenH,.18,LB({map:wallT,color:0x201208}));
+bk2T.position.set(0,door2OpenH+(CH-door2OpenH)/2,CZ2);scene.add(bk2T);
+
+// ── Corridor lighting — two torch sconces ─────────────────────
+[[-CW/2+.28,2.0,CZ+1.2],[CW/2-.28,2.0,CZ+1.2],[-CW/2+.28,2.0,corrZ],[CW/2-.28,2.0,corrZ]].forEach(([px,py,pz])=>{
+  const bkt=BX(.08,.07,.24,ironM);bkt.position.set(px,py,pz);scene.add(bkt);
+  const tc=CY(.025,.035,.2,6,LB({color:0x2e1006}));tc.position.set(px,py+.14,pz);scene.add(tc);
+  const tf=SP(.04,5,BA({color:0xff8800}));tf.position.set(px,py+.26,pz);scene.add(tf);
+  const tl=new THREE.PointLight(0xff6600,1.8,4.5);tl.position.set(px,py+.28,pz);scene.add(tl);
+});
+
+// ── KEYPAD DOOR (door 2) ──────────────────────────────────────
+// Door frame jambs
+[-1,1].forEach(xs=>{
+  const jamb2=BX(.2,door2OpenH+.08,.28,LB({map:wallT,color:0x201208}));
+  jamb2.position.set(xs*(door2OpenW/2+.1),door2OpenH/2,CZ2);scene.add(jamb2);
+});
+const thresh2=BX(door2OpenW+.5,.1,.28,LB({color:0x181008}));
+thresh2.position.set(0,.05,CZ2);scene.add(thresh2);
+// Arch above door2
+const arch2=new THREE.Mesh(new THREE.TorusGeometry(.66,.14,8,18,Math.PI),LB({map:wallT,color:0x201208}));
+arch2.position.set(0,door2OpenH,CZ2);arch2.rotation.z=Math.PI;scene.add(arch2);
+
+// Door2 panel itself (heavy metal — very different look from door1)
+const door2Panel=G();
+const d2Main=BX(door2OpenW-.06,door2OpenH-.06,.16,LB({color:0x1a1a1a}));
+d2Main.position.set(0,door2OpenH/2,0);door2Panel.add(d2Main);
+// Riveted plate pattern
+for(let rx=-1;rx<=1;rx+=2) for(let ry=0;ry<3;ry++){
+  const rvt=SP(.028,5,LB({color:0x2a2a2a}));
+  rvt.position.set(rx*(door2OpenW/2-.15),door2OpenH*.2+ry*(door2OpenH*.28),.09);door2Panel.add(rvt);
+}
+// Horizontal reinforcing bars
+[.5,1.25,2.0].forEach(y=>{
+  const bar=BX(door2OpenW-.08,.055,.18,LB({color:0x141414}));bar.position.set(0,y,0);door2Panel.add(bar);
+});
+// Keypad housing on door (right side, chest height)
+const kpHousing=BX(.42,.55,.2,LB({color:0x0e0e0e}));
+kpHousing.position.set(door2OpenW/2-.32,1.3,.1);door2Panel.add(kpHousing);
+// Keypad display (shows entered digits)
+const kpDisplay=BX(.32,.1,.21,BA({color:0x001100}));
+kpDisplay.position.set(door2OpenW/2-.32,1.62,.1);door2Panel.add(kpDisplay);
+// Keypad digit LEDs (4 slots)
+[-1.5,-.5,.5,1.5].forEach((i,idx)=>{
+  const led=BX(.055,.07,.22,BA({color:0x004400}));
+  led.position.set(door2OpenW/2-.32+i*.072,1.62,.1);door2Panel.add(led);
+  led.userData.kpLed=idx;
+});
+// Keypad glow
+const kpGlow=new THREE.PointLight(0x00ff44,.6,1.2);
+kpGlow.position.set(door2OpenW/2-.32,1.5,.35);door2Panel.add(kpGlow);
+
+door2Panel.position.set(0,0,CZ2+.09);scene.add(door2Panel);
+
+// Tiny room beyond door2 (victory room)
+const vRoomZ=CZ2-2.5;
+const vFloor=BX(door2OpenW-.06,.1,5,LB({color:0x0e0c08}));vFloor.position.set(0,-.05,vRoomZ);scene.add(vFloor);
+const vCeil=BX(door2OpenW+.5,.1,5,LB({color:0x0a0805}));vCeil.position.set(0,CH+.05,vRoomZ);scene.add(vCeil);
+const vWL=BX(.16,CH,5,LB({color:0x181008}));vWL.position.set(-(door2OpenW/2),CH/2,vRoomZ);scene.add(vWL);
+const vWR=BX(.16,CH,5,LB({color:0x181008}));vWR.position.set( door2OpenW/2,CH/2,vRoomZ);scene.add(vWR);
+const vWB=BX(door2OpenW+.5,CH,.16,LB({color:0x181008}));vWB.position.set(0,CH/2,CZ2-5.1);scene.add(vWB);
+vWB.visible=false;
+// Victory room light
+const vLight=new THREE.PointLight(0x6688ff,0,8);vLight.position.set(0,2,vRoomZ);scene.add(vLight);
+
+// ══════════════════════════════════════════════════════════════
+//  OUTSIDE ESCAPE — night desert beyond the keypad door
+// ══════════════════════════════════════════════════════════════
+const exterior=G();exterior.visible=false;scene.add(exterior);
+const sandM=LB({color:0xa87838,emissive:new THREE.Color(.015,.012,.006)});
+const sandDarkM=LB({color:0x5f3d1e});
+const pyramidM=LB({color:0xb98d52,emissive:new THREE.Color(.018,.014,.007)});
+const pyramidDarkM=LB({color:0x6c4b2d});
+const nightStoneM=LB({color:0x7c5b36});
+const exitZ=CZ2-5.9;
+
+const desert=BX(120,.1,96,sandM);desert.position.set(0,-.08,exitZ-38);exterior.add(desert);
+for(let i=0;i<24;i++){
+  const dune=BX(5+Math.random()*9,.08,1.8+Math.random()*4,sandDarkM);
+  dune.position.set(-48+Math.random()*96,.015,exitZ-8-Math.random()*70);
+  dune.rotation.y=Math.random()*Math.PI;
+  dune.scale.y=.45+Math.random()*.6;
+  exterior.add(dune);
+}
+
+function addPyramid(x,z,size,height,mat=pyramidM){
+  const p=new THREE.Mesh(new THREE.ConeGeometry(size,height,4),mat);
+  p.rotation.y=Math.PI/4;p.position.set(x,height/2-.06,z);exterior.add(p);
+  const cap=new THREE.Mesh(new THREE.ConeGeometry(size*.18,height*.16,4),LB({color:0xd8bd74,emissive:new THREE.Color(.05,.035,0)}));
+  cap.rotation.y=Math.PI/4;cap.position.set(x,height-.06,z);exterior.add(cap);
+  return p;
+}
+
+// The chamber entrance is revealed as a pyramid when the player turns around.
+const exitPyramid=addPyramid(0,CZ2-2.0,5.7,7.2,pyramidM);
+const exitShadow=BX(1.35,2.25,.08,BA({color:0x020102}));
+exitShadow.position.set(0,1.1,CZ2-6.95);exterior.add(exitShadow);
+const exitFrame=BX(1.8,.18,.14,nightStoneM);exitFrame.position.set(0,2.28,CZ2-6.9);exterior.add(exitFrame);
+[-1,1].forEach(s=>{
+  const post=BX(.18,2.25,.14,nightStoneM);post.position.set(s*.82,1.13,CZ2-6.9);exterior.add(post);
+});
+
+[
+  [-16,exitZ-16,3.4,4.6], [14,exitZ-19,4.1,5.5], [-30,exitZ-31,5.5,7.4],
+  [31,exitZ-34,3.5,4.8], [-9,exitZ-43,4.7,6.1], [9,exitZ-52,6.2,8.2],
+  [-40,exitZ-58,3.7,5.0], [42,exitZ-62,5.1,6.8], [0,exitZ-72,4.3,5.8]
+].forEach(([x,z,s,h])=>addPyramid(x,z,s,h));
+
+function addObelisk(x,z,h){
+  const shaft=BX(.42,h,.42,nightStoneM);shaft.position.set(x,h/2,z);exterior.add(shaft);
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(.34,.78,4),LB({color:0xc69a55,emissive:new THREE.Color(.025,.018,0)}));
+  tip.rotation.y=Math.PI/4;tip.position.set(x,h+.35,z);exterior.add(tip);
+  const runeT=mkc(96,160,(ctx,w,hh)=>{
+    ctx.clearRect(0,0,w,hh);ctx.fillStyle='rgba(255,190,70,.8)';ctx.font='bold 20px Georgia,serif';ctx.textAlign='center';
+    ['𓂀','𓆣','𓇌','𓊹'].forEach((r,i)=>ctx.fillText(r,w/2,32+i*30));
+  });
+  const runes=new THREE.Mesh(new THREE.PlaneGeometry(.34,.9),BA({map:runeT,transparent:true,depthWrite:false}));
+  runes.position.set(x,1.2,z-.215);exterior.add(runes);
+}
+[-2.4,2.4].forEach(x=>addObelisk(x,CZ2-7.4,2.6));
+[-12,12].forEach(x=>addObelisk(x,exitZ-22,3.4));
+
+const moon=SP(1.15,18,BA({color:0xd8e8ff}));
+moon.position.set(-18,18,exitZ-42);exterior.add(moon);
+const moonGlow=new THREE.PointLight(0x9dbbff,0,80);moonGlow.position.copy(moon.position);scene.add(moonGlow);
+const exteriorLight=new THREE.HemisphereLight(0x6f8dff,0x5d3514,0);scene.add(exteriorLight);
+for(let i=0;i<120;i++){
+  const star=SP(.025+Math.random()*.035,5,BA({color:0xdde8ff}));
+  star.position.set(-58+Math.random()*116,12+Math.random()*28,exitZ-10-Math.random()*82);
+  exterior.add(star);
+}
+for(let i=0;i<18;i++){
+  const wisp=BX(3+Math.random()*5,.018,.035,BA({color:0xd7b06a,transparent:true,opacity:.38}));
+  wisp.position.set(-42+Math.random()*84,.35+Math.random()*1.2,exitZ-10-Math.random()*58);
+  wisp.rotation.y=Math.random()*Math.PI;
+  exterior.add(wisp);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PASSCODE = 6923
+//  Four large glowing digit plaques — one on each wall, unmissable
+// ══════════════════════════════════════════════════════════════
+const PASSCODE='6923';
+
+function makeWallDigit(digit, orderLabel, accentColor){
+  const tex = mkc(320,420,(ctx,w,h)=>{
+    // Stone slab background
+    ctx.fillStyle='#120a04'; ctx.fillRect(0,0,w,h);
+    // Stone noise
+    for(let n=0;n<600;n++){
+      const v=20+Math.random()*20;
+      ctx.fillStyle=`rgba(${v+6},${v},${v-4},${Math.random()*.3})`;
+      ctx.fillRect(Math.random()*w,Math.random()*h,Math.random()*10,Math.random()*6);
+    }
+    // Outer frame
+    ctx.strokeStyle=accentColor; ctx.lineWidth=6;
+    ctx.shadowColor=accentColor; ctx.shadowBlur=18;
+    ctx.strokeRect(8,8,w-16,h-16);
+    ctx.lineWidth=2; ctx.strokeRect(18,18,w-36,h-36);
+    ctx.shadowBlur=0;
+    // Order label at top
+    ctx.fillStyle=accentColor; ctx.font='bold 18px Georgia,serif';
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+    ctx.fillText(orderLabel, w/2, 52);
+    // Decorative rune line
+    ctx.fillStyle='rgba(180,80,0,.55)'; ctx.font='15px serif';
+    ctx.fillText('— ᚠ ᛟ ᚾ ᛈ —', w/2, 78);
+    // THE DIGIT — massive and glowing
+    ctx.shadowColor=accentColor; ctx.shadowBlur=50;
+    ctx.fillStyle='#ffffff'; ctx.font='bold 260px Georgia,serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(digit, w/2, h/2+14);
+    ctx.shadowBlur=25;
+    ctx.fillStyle=accentColor;
+    ctx.fillText(digit, w/2, h/2+14);
+    ctx.shadowBlur=0;
+    // Bottom label
+    ctx.fillStyle='rgba(200,120,30,.7)'; ctx.font='bold 15px Georgia,serif';
+    ctx.textBaseline='alphabetic'; ctx.textAlign='center';
+    ctx.fillText('REMEMBER THIS NUMBER', w/2, h-28);
+  });
+  return tex;
+}
+
+// Plaque meshes — added to scene after room geometry is built
+// Using large high-contrast plaques, lifted above furniture so they stay visible.
+const digitData = [
+  // digit, label, x, y, z, rotY, lightColor
+  { d:'6', lbl:'DIGIT  1  OF  4', x:-RW/2+.18, y:3.15, z: 4.25,    ry: Math.PI/2,  col:'#ff8800', lc:0xff6600 },
+  { d:'9', lbl:'DIGIT  2  OF  4', x: 0,        y:3.45, z:-RD/2+.18, ry:0,          col:'#ff4422', lc:0xff2200 },
+  { d:'2', lbl:'DIGIT  3  OF  4', x: RW/2-.18, y:3.15, z: 4.25,    ry:-Math.PI/2,  col:'#cc8800', lc:0xff8800 },
+  { d:'3', lbl:'DIGIT  4  OF  4', x: 0,        y:3.15, z: RD/2-.18, ry:Math.PI,    col:'#ff6600', lc:0xff4400 },
+];
+
+// Store meshes for later scene.add (after scene exists — it does at this point)
+digitData.forEach(dd=>{
+  const tex = makeWallDigit(dd.d, dd.lbl, dd.col);
+  const normal = new THREE.Vector3(0, 0, 1).applyEuler(new THREE.Euler(0, dd.ry, 0));
+  const basePos = new THREE.Vector3(dd.x, dd.y, dd.z);
+  const plaque = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.15, 1.5),
+    BA({map:tex, side:THREE.DoubleSide})
+  );
+  plaque.position.copy(basePos).addScaledVector(normal, .085);
+  plaque.rotation.y = dd.ry;
+  plaque.renderOrder = 5;
+  scene.add(plaque);
+  // Stone mounting plate sits behind the digit instead of covering it.
+  const mount = BX(1.28,1.62,.055, LB({color:0x1a1008}));
+  mount.position.copy(basePos).addScaledVector(normal, .03);
+  mount.rotation.y = dd.ry;
+  scene.add(mount);
+  // Dedicated point light illuminating THIS plaque
+  const pl = new THREE.PointLight(dd.lc, 2.5, 3.5);
+  const offset = normal.clone().multiplyScalar(.75);
+  pl.position.set(dd.x + offset.x, dd.y + .3, dd.z + offset.z);
+  scene.add(pl);
+});
+
+// Hint note pinned near door 1 arch
+const hintNoteT=mkc(280,140,(ctx,w,h)=>{
+  ctx.fillStyle='#b89020'; ctx.fillRect(0,0,w,h);
+  for(let i=0;i<220;i++){ctx.fillStyle=`rgba(0,0,0,${Math.random()*.12})`;ctx.fillRect(Math.random()*w,Math.random()*h,Math.random()*5,Math.random()*4);}
+  const g=ctx.createRadialGradient(w/2,h/2,20,w/2,h/2,110);
+  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(20,8,0,.5)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='rgba(140,70,0,.7)'; ctx.lineWidth=2; ctx.strokeRect(5,5,w-10,h-10);
+  ctx.fillStyle='#1a0600'; ctx.font='bold 11px Georgia,serif'; ctx.textAlign='center';
+  ['THE DOOR AHEAD HAS A CODE.','FOUR DIGITS ARE WRITTEN ON','THE WALLS — ONE ON EACH SIDE.','READ THEM IN ORDER: 1 2 3 4.'].forEach((l,i)=>ctx.fillText(l,w/2,22+i*24));
+});
+const hintNote=new THREE.Mesh(new THREE.PlaneGeometry(.88,.44),LB({map:hintNoteT,side:THREE.DoubleSide}));
+hintNote.position.set(0,2.2,-RD/2+.18);hintNote.rotation.y=0;scene.add(hintNote);
+
+// ══════════════════════════════════════════════════════════════
+//  KEYPAD STATE + HTML UI
+// ══════════════════════════════════════════════════════════════
+const KP={entered:'',unlocked:false,active:false};
+
+// Inject keypad HTML overlay (appears when player clicks keypad housing)
+const kpOverlay=document.createElement('div');
+kpOverlay.id='kpOverlay';
+kpOverlay.innerHTML=`
+<div id="kpBox">
+  <div id="kpTitle">ENTER CODE</div>
+  <div id="kpDisplay">____</div>
+  <div id="kpErr"></div>
+  <div id="kpGrid">
+    ${[1,2,3,4,5,6,7,8,9,'✕',0,'↵'].map(k=>`<button class="kpBtn" data-k="${k}">${k}</button>`).join('')}
+  </div>
+  <div id="kpHint">Four digits. Look around the room.</div>
+</div>`;
+document.body.appendChild(kpOverlay);
+
+const kpStyle=document.createElement('style');
+kpStyle.textContent=`
+#kpOverlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:40;}
+#kpOverlay.on{display:flex;}
+#kpBox{background:#0e0804;border:2px solid #3a1a04;padding:1.6rem 2rem;min-width:300px;text-align:center;box-shadow:0 0 40px rgba(200,60,0,.3);}
+#kpTitle{color:#c8a030;font-size:.75rem;letter-spacing:.3em;text-transform:uppercase;margin-bottom:.8rem;font-family:'Georgia',serif;}
+#kpDisplay{
+  font-family:'Courier New',monospace;font-size:2.8rem;letter-spacing:.5em;
+  color:#00ff44;background:#001a00;padding:.4rem 1.2rem;margin-bottom:.5rem;
+  border:1px solid #005500;text-shadow:0 0 12px #00ff44;min-width:180px;
+  display:inline-block;
+}
+#kpErr{color:#ff2200;font-size:.75rem;min-height:1.1rem;margin-bottom:.5rem;font-family:'Georgia',serif;letter-spacing:.1em;}
+#kpGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem;margin:.6rem 0;}
+.kpBtn{
+  background:#1a0c02;border:1px solid #3a2008;color:#c8a96e;
+  font-size:1.2rem;padding:.6rem;cursor:pointer;font-family:'Courier New',monospace;
+  transition:all .15s;
+}
+.kpBtn:hover{background:#2a1604;border-color:#c8a96e;color:#ffd060;}
+.kpBtn:active{background:#3a2008;}
+#kpHint{color:#3a2008;font-size:.68rem;letter-spacing:.1em;margin-top:.6rem;font-family:'Georgia',serif;}
+`;
+document.head.appendChild(kpStyle);
+
+// Keypad logic
+document.addEventListener('click',e=>{
+  if(!e.target.classList.contains('kpBtn'))return;
+  e.stopPropagation();
+  const k=e.target.dataset.k;
+  if(k==='✕'){KP.entered='';updateKpDisplay();}
+  else if(k==='↵'){submitCode();}
+  else if(KP.entered.length<4){KP.entered+=k;updateKpDisplay();}
+});
+document.addEventListener('keydown',e=>{
+  // Block ALL game input while keypad is open
+  if(KP.active){
+    e.preventDefault();e.stopPropagation();
+    if(e.key==='Escape'){closeKp();return;}
+    if(e.key>='0'&&e.key<='9'&&KP.entered.length<4){KP.entered+=e.key;updateKpDisplay();}
+    else if(e.key==='Backspace'){KP.entered=KP.entered.slice(0,-1);updateKpDisplay();}
+    else if(e.key==='Enter'){submitCode();}
+    return;
+  }
+});
+function updateKpDisplay(){
+  const d=document.getElementById('kpDisplay');
+  d.textContent=(KP.entered+'____').slice(0,4).split('').map((c,i)=>i<KP.entered.length?c:'_').join('');
+}
+function submitCode(){
+  if(KP.entered===PASSCODE){
+    KP.unlocked=true;closeKp();
+    unlockDoor2();
+  } else {
+    const err=document.getElementById('kpErr');
+    err.textContent='✗  INCORRECT CODE';KP.entered='';updateKpDisplay();
+    // Flash red
+    kpOverlay.style.background='rgba(80,0,0,.9)';
+    setTimeout(()=>{kpOverlay.style.background='rgba(0,0,0,.88)';err.textContent='';},800);
+    // Also trigger in-world flash
+    const bo=document.getElementById('blood');bo.style.background='rgba(120,0,0,.45)';bo.style.transition='background .1s';
+    setTimeout(()=>{bo.style.background='rgba(0,0,0,0)';bo.style.transition='background 1.5s';},200);
+  }
+}
+function openKp(){
+  if(KP.unlocked||!S.won)return;
+  KP.active=true;KP.entered='';updateKpDisplay();
+  document.getElementById('kpErr').textContent='';
+  kpOverlay.classList.add('on');
+  // Release pointer lock so mouse can click keypad buttons
+  exitGamePointerLock();
+}
+function closeKp(){
+  KP.active=false;
+  kpOverlay.classList.remove('on');
+  // Small delay before re-locking so the browser processes the unlock first
+  setTimeout(()=>{if(started&&!document.pointerLockElement)requestGamePointerLock();},200);
+}
+
+function unlockDoor2(){
+  // Animate door2 panel sliding into wall (it's a keypad door — slides sideways)
+  let slide=0;
+  const iv=setInterval(()=>{
+    slide+=.05;door2Panel.position.x=-slide*(door2OpenW+.1);
+    if(slide>=1.1){clearInterval(iv);}
+  },16);
+  vLight.intensity=4;
+  exterior.visible=true;
+  moonGlow.intensity=3.2;
+  exteriorLight.intensity=1.15;
+  scene.background=new THREE.Color(0x030816);
+  scene.fog=new THREE.FogExp2(0x050814,.018);
+  kpGlow.color.setHex(0x00ff44);kpGlow.intensity=2;
+  showHint('✦ CODE ACCEPTED — THE IRON DOOR GRINDS OPEN. Walk forward into the night. ✦');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  KEYPAD INTERACTION — add to interactables + click handler
+// ══════════════════════════════════════════════════════════════
+// Visible keypad hit mesh on door2 panel
+const kpHitMesh=new THREE.Mesh(new THREE.BoxGeometry(.45,.58,.25),BA({visible:false}));
+kpHitMesh.position.set(door2OpenW/2-.32,1.3,.22);kpHitMesh.userData.isKeypad=true;
+door2Panel.add(kpHitMesh);
+
+// Exit light behind door1 (corridor light)
+const exitLight=new THREE.PointLight(0xff8844,0,10);
+exitLight.position.set(0,2.0,-RD/2-2.5);scene.add(exitLight);
+
+// ══════════════════════════════════════════════════════════════
+//  ALTAR TABLE — center of room
+// ══════════════════════════════════════════════════════════════
+const altar=G();
+
+// Heavy round tabletop
+const altarTopMesh=new THREE.Mesh(new THREE.CylinderGeometry(1.18,1.12,.11,40),woodM);
+altarTopMesh.position.y=.88;altar.add(altarTopMesh);
+
+// Gold edge ring
+const edgeRing=TR(1.12,.042,48,goldM);edgeRing.rotation.x=Math.PI/2;edgeRing.position.y=.88;altar.add(edgeRing);
+// Secondary inner ring
+const innerRing=TR(.9,.018,40,goldM);innerRing.rotation.x=Math.PI/2;innerRing.position.y=.882;altar.add(innerRing);
+
+// ── RITUAL ENGRAVING on tabletop (shows slot shapes) ──────────
+const ritT=mkc(512,512,(x,w,h)=>{
+  x.fillStyle='#0e0804';x.fillRect(0,0,w,h);
+  const cx=w/2,cy=h/2;
+
+  // Outer circles
+  x.shadowColor='#cc5500';x.shadowBlur=15;
+  x.strokeStyle='rgba(200,80,0,.95)';x.lineWidth=3;
+  x.beginPath();x.arc(cx,cy,240,0,Math.PI*2);x.stroke();
+  x.beginPath();x.arc(cx,cy,190,0,Math.PI*2);x.stroke();
+  x.lineWidth=1.5;x.beginPath();x.arc(cx,cy,155,0,Math.PI*2);x.stroke();
+
+  // 8-pointed star
+  for(let i=0;i<8;i++){
+    const a1=(i/8)*Math.PI*2,a2=((i+4)/8)*Math.PI*2;
+    x.beginPath();x.moveTo(cx+Math.cos(a1)*150,cy+Math.sin(a1)*150);
+    x.lineTo(cx+Math.cos(a2)*150,cy+Math.sin(a2)*150);x.stroke();
+  }
+  // Rune ring
+  x.shadowBlur=5;x.font='13px serif';x.fillStyle='rgba(200,70,0,.8)';x.textAlign='center';
+  'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛃᛇᛈᛉᛊ'.split('').forEach((r,i)=>{
+    const a=(i/16)*Math.PI*2;x.fillText(r,cx+Math.cos(a)*218,cy+Math.sin(a)*218+5);
+  });
+  // Center eye
+  x.shadowBlur=8;x.strokeStyle='rgba(255,120,0,.9)';x.lineWidth=2;
+  x.beginPath();x.ellipse(cx,cy,30,17,0,0,Math.PI*2);x.stroke();
+  x.beginPath();x.arc(cx,cy,8,0,Math.PI*2);x.stroke();
+  x.fillStyle='rgba(255,50,0,.75)';x.beginPath();x.arc(cx,cy,5,0,Math.PI*2);x.fill();
+  x.shadowBlur=0;
+
+  // ── SLOT 0 LEFT: SKULL ──────────────────────────────────────
+  const s0x=cx-192,s0y=cy+8;
+  x.strokeStyle='rgba(255,210,70,1)';x.lineWidth=2.8;x.shadowColor='#ffdd00';x.shadowBlur=14;
+  // skull cranium circle
+  x.beginPath();x.arc(s0x,s0y-14,28,0,Math.PI*2);x.stroke();
+  // jaw rectangle
+  x.beginPath();x.moveTo(s0x-20,s0y+8);x.lineTo(s0x-20,s0y+30);
+  x.lineTo(s0x+20,s0y+30);x.lineTo(s0x+20,s0y+8);x.stroke();
+  // eye sockets
+  x.lineWidth=1.8;
+  x.beginPath();x.arc(s0x-9,s0y-16,7,0,Math.PI*2);x.stroke();
+  x.beginPath();x.arc(s0x+9,s0y-16,7,0,Math.PI*2);x.stroke();
+  // nose
+  x.beginPath();x.arc(s0x,s0y-3,3,0,Math.PI*2);x.stroke();
+  // teeth
+  for(let t=0;t<5;t++){x.beginPath();x.moveTo(s0x-16+t*8,s0y+8);x.lineTo(s0x-16+t*8,s0y+18);x.stroke();}
+  x.shadowBlur=6;x.fillStyle='rgba(255,190,50,.95)';x.font='bold 12px Georgia,serif';
+  x.fillText('I — SKULL',s0x,s0y+48);x.shadowBlur=0;
+
+  // ── SLOT 1 TOP: AMULET (pentagram) ──────────────────────────
+  const s1x=cx,s1y=cy-158;
+  x.strokeStyle='rgba(255,210,70,1)';x.lineWidth=2.8;x.shadowColor='#ffdd00';x.shadowBlur=14;
+  x.beginPath();x.arc(s1x,s1y,30,0,Math.PI*2);x.stroke();
+  x.beginPath();x.arc(s1x,s1y,20,0,Math.PI*2);x.stroke();
+  for(let i=0;i<5;i++){
+    const a1=(i*4*Math.PI/5)-Math.PI/2,a2=((i+2)*4*Math.PI/5)-Math.PI/2;
+    x.beginPath();x.moveTo(s1x+Math.cos(a1)*24,s1y+Math.sin(a1)*24);
+    x.lineTo(s1x+Math.cos(a2)*24,s1y+Math.sin(a2)*24);x.stroke();
+  }
+  x.shadowBlur=6;x.fillStyle='rgba(255,190,50,.95)';x.font='bold 12px Georgia,serif';
+  x.fillText('II — AMULET',s1x,s1y+52);x.shadowBlur=0;
+
+  // ── SLOT 2 RIGHT: TOME (book) ────────────────────────────────
+  const s2x=cx+192,s2y=cy+8;
+  x.strokeStyle='rgba(255,210,70,1)';x.lineWidth=2.8;x.shadowColor='#ffdd00';x.shadowBlur=14;
+  x.strokeRect(s2x-20,s2y-32,40,58);
+  x.lineWidth=1.8;
+  x.beginPath();x.moveTo(s2x-20,s2y-32);x.lineTo(s2x-20,s2y+26);x.stroke();
+  for(let p=0;p<5;p++){x.beginPath();x.moveTo(s2x-18,s2y-22+p*12);x.lineTo(s2x+16,s2y-22+p*12);x.stroke();}
+  x.shadowBlur=6;x.fillStyle='rgba(255,190,50,.95)';x.font='bold 12px Georgia,serif';
+  x.fillText('III — TOME',s2x,s2y+48);x.shadowBlur=0;
+});
+const ritDecal=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,.001,40),
+  BA({map:ritT,transparent:true,depthWrite:false}));
+ritDecal.position.y=.884;altar.add(ritDecal);
+
+// Pedestal
+const ped1=CY(.19,.23,.64,14,woodM);ped1.position.y=.52;altar.add(ped1);
+const ped2=CY(.34,.34,.13,14,mdwM);ped2.position.y=.21;altar.add(ped2);
+const ped3=CY(.54,.58,.13,14,dkwM);ped3.position.y=.065;altar.add(ped3);
+for(let i=0;i<6;i++){const r=TR(.2,.012,16,goldM);r.rotation.x=Math.PI/2;r.position.y=.27+i*.046;altar.add(r);}
+
+// ── ARTIFACT SOCKETS — proper 3D shaped indentations ──────────
+const slotDefs=[
+  {x:-.82, z:.02,  id:'skull'},
+  {x:.02,  z:-.65, id:'amulet'},
+  {x:.82,  z:.02,  id:'tome'},
+];
+const slotRingMats=[];
+const socketGlows=[];
+
+slotDefs.forEach((sd,i)=>{
+  // ── Invisible hit pad for raycasting
+  const hit=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.08,16),BA({visible:false}));
+  hit.position.set(sd.x,.91,sd.z);
+  hit.userData={isSlot:true,slotIndex:i};
+  altar.add(hit);
+
+  // ── Socket base — dark recessed shadow mold (looks carved into table)
+  const socketBase=new THREE.Mesh(
+    new THREE.CylinderGeometry(.31,.31,.02,36),
+    LB({color:0x080402})
+  );
+  socketBase.position.set(sd.x,.884,sd.z);altar.add(socketBase);
+
+  // ── Outer raised lip ring (gold/brass border around socket)
+  const lipMat=LB({color:0x8a6008,emissive:new THREE.Color(.06,.03,0)});
+  const lip=new THREE.Mesh(new THREE.TorusGeometry(.31,.022,8,48),lipMat);
+  lip.rotation.x=Math.PI/2;lip.position.set(sd.x,.89,sd.z);altar.add(lip);
+
+  // ── Glowing outline ring (pulses, MeshBasicMaterial so always visible)
+  const rm=BA({color:0xffaa00});slotRingMats.push(rm);
+  const glowRing=new THREE.Mesh(new THREE.TorusGeometry(.295,.014,8,48),rm);
+  glowRing.rotation.x=Math.PI/2;glowRing.position.set(sd.x,.895,sd.z);altar.add(glowRing);
+
+  // Socket glow light — world position (altar is at z=-0.5)
+  const sg=new THREE.PointLight(0xff8800,.5,0.9);
+  sg.position.set(sd.x, .95, sd.z-.5);
+  scene.add(sg);socketGlows.push(sg);
+
+  // ── SHAPE-SPECIFIC 3D SOCKET INLAY ─────────────────────────
+  if(i===0){
+    // SKULL SOCKET — raised skull silhouette embossed into dark base
+    // Cranium oval
+    const cranM=LB({color:0x261606});
+    const cran=new THREE.Mesh(new THREE.CylinderGeometry(.15,.15,.012,24),cranM);
+    cran.scale.set(1.05,1,.82);cran.position.set(sd.x,.897,sd.z-.045);altar.add(cran);
+    // Jaw rectangle emboss
+    const jaw=BX(.21,.012,.13,cranM);jaw.position.set(sd.x,.897,sd.z+.125);altar.add(jaw);
+    // Eye socket holes (dark circles)
+    const eyeM=LB({color:0x040202});
+    [-1,1].forEach(ex=>{
+      const eye=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,.018,12),eyeM);
+      eye.position.set(sd.x+ex*.06,.902,sd.z-.025);altar.add(eye);
+    });
+    // Nose hole
+    const ns=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.018,3),eyeM);
+    ns.rotation.y=Math.PI/3;ns.position.set(sd.x,.902,sd.z+.055);altar.add(ns);
+    // Teeth bumps
+    for(let t=0;t<7;t++){
+      const tooth=BX(.018,.012,.035,LB({color:0x0b0502}));
+      tooth.position.set(sd.x+(t-3)*.032,.905,sd.z+.145);altar.add(tooth);
+    }
+    // Outline shape using glowing lines
+    const sRM=BA({color:0xffaa00});
+    const skullOutline=new THREE.Mesh(new THREE.TorusGeometry(.15,.009,8,28),sRM);
+    skullOutline.rotation.x=Math.PI/2;skullOutline.scale.set(1.05,1,.82);
+    skullOutline.position.set(sd.x,.908,sd.z-.045);altar.add(skullOutline);
+    const jawLine=BX(.23,.009,.012,sRM);jawLine.position.set(sd.x,.908,sd.z+.19);altar.add(jawLine);
+    const jawLineZ=BX(.012,.009,.13,sRM);jawLineZ.position.set(sd.x-.115,.908,sd.z+.125);altar.add(jawLineZ);
+    const jawLineZ2=BX(.012,.009,.13,sRM);jawLineZ2.position.set(sd.x+.115,.908,sd.z+.125);altar.add(jawLineZ2);
+
+  } else if(i===1){
+    // AMULET SOCKET — pentagram engraved in base
+    const pentM=LB({color:0x260604});
+    const pentBase=new THREE.Mesh(new THREE.CylinderGeometry(.205,.205,.012,28),pentM);
+    pentBase.position.set(sd.x,.898,sd.z);altar.add(pentBase);
+    // Inner circle emboss
+    const innerC=new THREE.Mesh(new THREE.CylinderGeometry(.165,.165,.014,28),LB({color:0x160504}));
+    innerC.position.set(sd.x,.901,sd.z);altar.add(innerC);
+    // Pentagram lines engraved
+    const sRM2=BA({color:0xffaa00});
+    for(let p=0;p<5;p++){
+      const a1=(p*4*Math.PI/5)-Math.PI/2,a2=((p+2)*4*Math.PI/5)-Math.PI/2;
+      const x1=sd.x+Math.cos(a1)*.145,z1=sd.z+Math.sin(a1)*.145;
+      const x2=sd.x+Math.cos(a2)*.145,z2=sd.z+Math.sin(a2)*.145;
+      const dx=x2-x1,dz=z2-z1,len=Math.sqrt(dx*dx+dz*dz);
+      const bar=BX(len,.01,.01,sRM2);
+      bar.position.set((x1+x2)/2,.91,(z1+z2)/2);
+      bar.rotation.y=-Math.atan2(dz,dx);altar.add(bar);
+    }
+    // Outer circle ring
+    const outerPent=new THREE.Mesh(new THREE.TorusGeometry(.195,.009,8,40),sRM2);
+    outerPent.rotation.x=Math.PI/2;outerPent.position.set(sd.x,.91,sd.z);altar.add(outerPent);
+    // Center gem indentation
+    const cGem=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.018,10),LB({color:0x080202}));
+    cGem.position.set(sd.x,.905,sd.z);altar.add(cGem);
+
+  } else {
+    // TOME SOCKET — book-shaped rectangular indentation
+    const bookM=LB({color:0x180702});
+    const bookBase=BX(.34,.012,.46,bookM);bookBase.position.set(sd.x,.898,sd.z);altar.add(bookBase);
+    // Spine groove
+    const spine=BX(.024,.015,.46,LB({color:0x080300}));spine.position.set(sd.x-.145,.904,sd.z);altar.add(spine);
+    // Page lines engraved
+    const pageM=LB({color:0x120800});
+    for(let p=0;p<7;p++){
+      const pg=BX(.25,.012,.012,pageM);pg.position.set(sd.x+.03,.905,sd.z-.18+p*.06);altar.add(pg);
+    }
+    // Glowing outline — book rectangle
+    const sRM3=BA({color:0xffaa00});
+    const bkOutline=BX(.36,.009,.48,sRM3);bkOutline.position.set(sd.x,.91,sd.z);altar.add(bkOutline);
+    // Fill with dark so outline reads clearly
+    const bkFill=BX(.33,.008,.45,BA({color:0x080402}));bkFill.position.set(sd.x,.912,sd.z);altar.add(bkFill);
+    // Re-draw outline on top
+    const bkOut2=new THREE.Mesh(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(.34,.001,.46)),
+      new THREE.LineBasicMaterial({color:0xffaa00})
+    );bkOut2.position.set(sd.x,.916,sd.z);altar.add(bkOut2);
+    const spineOut=BX(.018,.009,.46,sRM3);spineOut.position.set(sd.x-.145,.916,sd.z);altar.add(spineOut);
+  }
+
+  // ── Label plate (what goes here)
+  const lblT=mkc(200,48,(x,w,h)=>{
+    x.clearRect(0,0,w,h);
+    x.shadowColor='#ffaa00';x.shadowBlur=8;
+    x.fillStyle='rgba(255,170,30,.95)';
+    x.font='bold 13px Georgia,serif';x.textAlign='center';
+    x.fillText(['I — SKULL','II — AMULET','III — TOME'][i],w/2,h/2+5);
+    x.shadowBlur=0;
+  });
+  const lbl=BX(.42,.001,.1,BA({map:lblT,transparent:true,depthWrite:false}));
+  lbl.rotation.x=-Math.PI/2;lbl.position.set(sd.x,.893,sd.z+.26);altar.add(lbl);
+});
+
+// Parchment note on table
+const parchT=mkc(256,160,(x,w,h)=>{
+  x.fillStyle='#c09828';x.fillRect(0,0,w,h);
+  for(let i=0;i<350;i++){x.fillStyle=`rgba(0,0,0,${Math.random()*.1})`;x.fillRect(Math.random()*w,Math.random()*h,Math.random()*6,Math.random()*5);}
+  const g=x.createRadialGradient(w/2,h/2,30,w/2,h/2,100);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(20,8,0,.5)');x.fillStyle=g;x.fillRect(0,0,w,h);
+  x.fillStyle='#180800';x.font='bold 10.5px Georgia,serif';x.textAlign='center';
+  ['✦ THE RITUAL ORDER ✦','','☠  Skull of Morgath — FIRST','⛧  Amulet of Bael — SECOND','📖 Tome of Shadows — THIRD','','Wrong order = punishment.'].forEach((l,i)=>x.fillText(l,w/2,14+i*20));
+});
+const noteM2=new THREE.Mesh(new THREE.PlaneGeometry(.58,.36),LB({map:parchT,side:THREE.DoubleSide}));
+noteM2.rotation.x=-Math.PI/2;noteM2.rotation.z=.15;noteM2.position.set(.35,.887,-.62);altar.add(noteM2);
+
+altar.position.set(0,0,-.5);scene.add(altar);
+// Digit 3 scroll sits on the altar table surface
+
+// ══════════════════════════════════════════════════════════════
+//  CHEST  (back right)
+// ══════════════════════════════════════════════════════════════
+const chestGrp=G();
+(()=>{
+  const body=BX(1.1,.58,.66,woodM);body.position.y=.29;chestGrp.add(body);
+  [.3,-.3,0].forEach(x=>{const s=BX(1.14,.05,.68,ironM);s.position.set(x,.38,0);chestGrp.add(s);});
+  const lp=BX(.15,.15,.12,goldM);lp.position.set(0,.38,.35);chestGrp.add(lp);
+  [[-1,-.3],[1,-.3],[-1,.3],[1,.3]].forEach(([xs,zs])=>{const br=BX(.09,.65,.09,ironM);br.position.set(xs*.54,.32,zs);chestGrp.add(br);});
+  const lid=BX(1.1,.17,.66,mdwM);lid.position.set(0,.64,0);lid.userData.isLid=true;chestGrp.add(lid);
+  const dome=new THREE.Mesh(new THREE.CylinderGeometry(.53,.53,.09,18,1,false,0,Math.PI),woodM);
+  dome.rotation.z=Math.PI/2;dome.position.set(0,.7,0);chestGrp.add(dome);
+  // Visible glow line on lock when closed (tempts player)
+  const glowLock=BX(.14,.14,.02,BA({color:0xff3300}));glowLock.position.set(0,.38,.365);chestGrp.add(glowLock);
+  const hit=BX(1.1,.85,.66,BA({visible:false}));hit.position.y=.43;hit.userData={isChest:true};chestGrp.add(hit);
+})();
+chestGrp.position.set(2.6,0,-4.0);chestGrp.rotation.y=Math.PI/7;scene.add(chestGrp);
+// Digit 6 — glued to inside of chest lid (seen when lid opens)
+
+// ══════════════════════════════════════════════════════════════
+//  WARDROBE  (left wall)
+// ══════════════════════════════════════════════════════════════
+const WARD_RUNES=['ᚠ','ᚾ','ᛟ','ᛉ'];
+const WARD_GOAL=[1,2,3];
+const wardRuneFaces=[];
+function makeWardRuneTexture(slot, solved=false){
+  return mkc(128,128,(x,w,h)=>{
+    x.clearRect(0,0,w,h);
+    const glow=solved?'#55ff88':'#ff8800';
+    x.fillStyle='rgba(10,4,0,.95)';x.beginPath();x.arc(w/2,h/2,55,0,Math.PI*2);x.fill();
+    x.strokeStyle=glow;x.lineWidth=5;x.shadowColor=glow;x.shadowBlur=18;
+    x.beginPath();x.arc(w/2,h/2,48,0,Math.PI*2);x.stroke();
+    x.lineWidth=2;x.beginPath();x.arc(w/2,h/2,34,0,Math.PI*2);x.stroke();
+    x.font='bold 54px Georgia,serif';x.textAlign='center';x.textBaseline='middle';
+    x.fillStyle=solved?'#d8ffd8':'#ffd060';x.fillText(WARD_RUNES[S.wardRunes[slot]],w/2,h/2+4);
+    x.shadowBlur=0;x.fillStyle='rgba(255,190,60,.7)';x.font='bold 12px Georgia,serif';
+    x.fillText(String(slot+1),w/2,h-12);
+  });
+}
+function refreshWardRune(slot){
+  const face=wardRuneFaces[slot];if(!face)return;
+  const old=face.material.map;
+  face.material.map=makeWardRuneTexture(slot,S.wardSolved);
+  face.material.needsUpdate=true;
+  if(old)old.dispose();
+}
+function refreshAllWardRunes(){for(let i=0;i<3;i++)refreshWardRune(i);}
+
+const wardGrp=G();
+(()=>{
+  const body=BX(1.6,2.9,.7,dkwM);body.position.y=1.45;wardGrp.add(body);
+  const crown=BX(1.74,.11,.78,mdwM);crown.position.y=2.96;wardGrp.add(crown);
+  const cf=BX(1.74,.22,.14,mdwM);cf.position.set(0,2.97,.38);wardGrp.add(cf);
+  const base=BX(1.66,.11,.72,dkwM);base.position.y=.055;wardGrp.add(base);
+  [-1,1].forEach(s=>{
+    const door=BX(.76,2.62,.07,mdwM);door.position.set(s*.4,1.38,.36);door.userData={isWardrobeDoor:true,side:s};wardGrp.add(door);
+    const panel=BX(.62,2.32,.05,dkwM);panel.position.set(s*.4,1.38,.4);wardGrp.add(panel);
+    const pvline=BX(.62,.02,.02,mdwM);pvline.position.set(s*.4,2.06,.41);wardGrp.add(pvline);
+    const pvline2=BX(.62,.02,.02,mdwM);pvline2.position.set(s*.4,.7,.41);wardGrp.add(pvline2);
+    const hv=CY(.02,.02,.17,8,goldM);hv.position.set(s*-.13,1.38,.42);wardGrp.add(hv);
+    const hb1=SP(.028,8,goldM);hb1.position.set(s*-.13,1.46,.42);wardGrp.add(hb1);
+    const hb2=SP(.028,8,goldM);hb2.position.set(s*-.13,1.30,.42);wardGrp.add(hb2);
+  });
+  // Ominous carved symbol on front
+  const symT=mkc(64,128,(x,w,h)=>{
+    x.fillStyle='transparent';x.clearRect(0,0,w,h);
+    x.strokeStyle='rgba(80,20,0,.6)';x.lineWidth=1.5;
+    x.beginPath();x.arc(w/2,h/2,28,0,Math.PI*2);x.stroke();
+    x.font='30px serif';x.fillStyle='rgba(80,20,0,.55)';x.textAlign='center';x.fillText('ᛟ',w/2,h/2+10);
+  });
+  const symD=new THREE.Mesh(new THREE.PlaneGeometry(.3,.6),BA({map:symT,transparent:true,depthWrite:false}));
+  symD.position.set(-.4,1.38,.425);wardGrp.add(symD);
+  [-.42,0,.42].forEach((xpos,idx)=>{
+    const disc=CY(.15,.15,.035,20,LB({color:0x130805}));
+    disc.rotation.x=Math.PI/2;disc.position.set(xpos,1.72,.47);
+    disc.userData={isRuneDisc:true,runeIndex:idx};wardGrp.add(disc);
+    const face=new THREE.Mesh(new THREE.PlaneGeometry(.26,.26),BA({map:makeWardRuneTexture(idx),transparent:true,depthWrite:false}));
+    face.position.set(xpos,1.72,.492);
+    face.userData={isRuneDisc:true,runeIndex:idx};wardGrp.add(face);wardRuneFaces[idx]=face;
+    const rim=TR(.152,.008,24,goldM);rim.rotation.x=Math.PI/2;rim.position.set(xpos,1.72,.497);wardGrp.add(rim);
+  });
+  const hit=BX(1.6,2.9,.7,BA({visible:false}));hit.position.y=1.45;hit.userData={isWardrobe:true};wardGrp.add(hit);
+})();
+wardGrp.position.set(-4.0,0,-2.0);wardGrp.rotation.y=Math.PI/2;scene.add(wardGrp);
+// Digit 9 — on back interior wall of wardrobe (seen when doors swing open)
+
+// ══════════════════════════════════════════════════════════════
+//  WRITING DESK  (right wall)
+// ══════════════════════════════════════════════════════════════
+const deskGrp=G(); const drawerParts=[];
+(()=>{
+  const top=BX(1.4,.09,.76,woodM);top.position.y=.8;deskGrp.add(top);
+  const surf=BX(1.1,.01,.56,LB({color:0x1a0900}));surf.position.set(0,.788,-.05);deskGrp.add(surf);
+  const trim=BX(1.12,.015,.58,goldM);trim.position.set(0,.783,-.05);deskGrp.add(trim);
+  [[-1,1],[1,1],[-1,-1],[1,-1]].forEach(([xs,zs])=>{
+    const leg=CY(.042,.052,.76,8,woodM);leg.position.set(xs*.62,.38,zs*.33);deskGrp.add(leg);
+    const foot=CY(.062,.072,.07,8,woodM);foot.position.set(xs*.62,.035,zs*.33);deskGrp.add(foot);
+    for(let r=0;r<3;r++){const rng=CY(.055,.055,.03,8,mdwM);rng.position.set(xs*.62,.15+r*.2,zs*.33);deskGrp.add(rng);}
+  });
+  const panel=BX(1.34,.38,.07,dkwM);panel.position.set(0,.59,-.37);deskGrp.add(panel);
+  const dBody=BX(1.0,.22,.66,mdwM);dBody.position.y=.47;deskGrp.add(dBody);
+  const dFront=BX(1.0,.20,.07,woodM);dFront.position.set(0,.47,.365);deskGrp.add(dFront);drawerParts.push(dFront);
+  const dh=CY(.019,.019,.19,6,goldM);dh.rotation.z=Math.PI/2;dh.position.set(0,.47,.42);deskGrp.add(dh);drawerParts.push(dh);
+  const dhb1=SP(.025,6,goldM);dhb1.position.set(-.095,.47,.42);deskGrp.add(dhb1);drawerParts.push(dhb1);
+  const dhb2=SP(.025,6,goldM);dhb2.position.set( .095,.47,.42);deskGrp.add(dhb2);drawerParts.push(dhb2);
+  // Props
+  const ink=CY(.042,.052,.08,10,LB({color:0x0e0e0e}));ink.position.set(.48,.84,-.2);deskGrp.add(ink);
+  const quill=BX(.015,.22,.012,LB({color:0xd0c070}));quill.rotation.z=.25;quill.position.set(.44,.88,-.2);deskGrp.add(quill);
+  const paper=BX(.5,.005,.36,LB({color:0xc0a030}));paper.rotation.y=.08;paper.position.set(-.15,.788,-.1);deskGrp.add(paper);
+  const candleDesk=CY(.025,.025,.18,6,candM);candleDesk.position.set(-.5,.84,-.2);deskGrp.add(candleDesk);
+  const dFlame=SP(.03,5,BA({color:0xff8800}));dFlame.position.set(-.5,.94,-.2);deskGrp.add(dFlame);
+  const hit=BX(1.4,1.1,.76,BA({visible:false}));hit.position.y=.55;hit.userData={isDesk:true};deskGrp.add(hit);
+})();
+deskGrp.position.set(4.0,0,.5);deskGrp.rotation.y=-Math.PI/2;scene.add(deskGrp);
+// Digit 2 — inside drawer (visible when drawer slides open, face-up)
+
+// ══════════════════════════════════════════════════════════════
+//  BOOKCASES
+// ══════════════════════════════════════════════════════════════
+function makeBookcase(px,pz,ry){
+  const g=G();
+  const frame=BX(1.7,2.7,.42,dkwM);frame.position.y=1.35;g.add(frame);
+  const crown=BX(1.78,.13,.46,mdwM);crown.position.y=2.72;g.add(crown);
+  const cf=BX(1.78,.22,.11,mdwM);cf.position.set(0,2.76,.22);g.add(cf);
+  const base=BX(1.72,.11,.44,dkwM);base.position.y=.055;g.add(base);
+  for(let s=0;s<3;s++){
+    const shelf=BX(1.64,.05,.38,mdwM);shelf.position.set(0,.55+s*.72,0);g.add(shelf);
+    let bx=-0.72;
+    while(bx<0.72){
+      const bw=.052+Math.random()*.042,bh=.18+Math.random()*.22;
+      const hue=Math.random()>.6?Math.random()*.08:.0;
+      const bkM=LB({color:new THREE.Color().setHSL(hue,.55,.07+Math.random()*.12)});
+      const bk=BX(bw,bh,.32,bkM);bk.position.set(bx+bw/2,.55+s*.72+bh/2+.05,0);g.add(bk);
+      if(Math.random()>.5){const band=BX(bw,.022,.33,LB({color:0x8a5808}));band.position.set(bx+bw/2,.55+s*.72+bh*.55,0);g.add(band);}
+      bx+=bw+.005;
+    }
+  }
+  g.position.set(px,0,pz);g.rotation.y=ry;scene.add(g);
+}
+makeBookcase(-4.6,-1.5,Math.PI/2);
+makeBookcase(-4.6, 1.8,Math.PI/2);
+
+// Rusty chest key — visible on the forward bookshelf
+function buildRustyKey(){
+  const g=G();g.userData={isChestKey:true};
+  const rustM=LB({color:0x8a4a12,emissive:new THREE.Color(.05,.018,0)});
+  const darkRust=LB({color:0x341707});
+  const bow=TR(.075,.014,18,rustM);bow.rotation.y=Math.PI/2;g.add(bow);
+  const stem=CY(.013,.013,.29,8,rustM);stem.rotation.z=Math.PI/2;stem.position.set(.17,0,0);g.add(stem);
+  const tooth1=BX(.055,.025,.028,rustM);tooth1.position.set(.31,-.035,0);g.add(tooth1);
+  const tooth2=BX(.038,.022,.028,rustM);tooth2.position.set(.27,-.072,0);g.add(tooth2);
+  const notch=BX(.022,.016,.03,darkRust);notch.position.set(.245,.028,0);g.add(notch);
+  const tagT=mkc(120,50,(x,w,h)=>{
+    x.fillStyle='#b88a28';x.fillRect(0,0,w,h);
+    x.strokeStyle='#3a1804';x.strokeRect(4,4,w-8,h-8);
+    x.fillStyle='#1a0800';x.font='bold 13px Georgia,serif';x.textAlign='center';
+    x.fillText('CHEST',w/2,22);x.fillText('KEY',w/2,38);
+  });
+  const tag=new THREE.Mesh(new THREE.PlaneGeometry(.18,.075),BA({map:tagT,side:THREE.DoubleSide}));
+  tag.position.set(-.13,-.04,0);g.add(tag);
+  g.traverse(c=>{if(c.isMesh)c.userData.isChestKey=true;});
+  return g;
+}
+const chestKey=buildRustyKey();
+chestKey.position.set(-4.18,1.72,1.72);
+chestKey.rotation.set(.1,Math.PI/2,-.25);
+scene.add(chestKey);
+const keyGlow=new THREE.PointLight(0xffaa44,1.5,1.3);keyGlow.position.set(-4.0,1.8,1.72);scene.add(keyGlow);
+
+// Marked book lever — pull it to release the desk drawer lock
+const hiddenBook=G();hiddenBook.userData={isBookLever:true};
+(()=>{
+  const cover=BX(.13,.48,.34,LB({color:0x2a0600,emissive:new THREE.Color(.09,0,0)}));
+  cover.userData.isBookLever=true;hiddenBook.add(cover);
+  const spine=BX(.04,.48,.36,goldM);spine.position.x=-.065;spine.userData.isBookLever=true;hiddenBook.add(spine);
+  const runeT=mkc(80,140,(x,w,h)=>{
+    x.clearRect(0,0,w,h);x.shadowColor='#ff2200';x.shadowBlur=14;
+    x.fillStyle='#ffd060';x.font='bold 46px Georgia,serif';x.textAlign='center';
+    x.fillText('ᛟ',w/2,h/2+15);x.shadowBlur=0;
+  });
+  const rune=new THREE.Mesh(new THREE.PlaneGeometry(.12,.22),BA({map:runeT,transparent:true,depthWrite:false}));
+  rune.position.set(.005,0,.176);rune.userData.isBookLever=true;hiddenBook.add(rune);
+})();
+hiddenBook.position.set(-4.18,1.78,-1.52);
+hiddenBook.rotation.y=Math.PI/2;
+scene.add(hiddenBook);
+const bookGlow=new THREE.PointLight(0xff2200,1.1,1.1);bookGlow.position.set(-4.0,1.85,-1.52);scene.add(bookGlow);
+
+// ══════════════════════════════════════════════════════════════
+//  MIRROR  (right wall back)
+// ══════════════════════════════════════════════════════════════
+(()=>{
+  const g=G();
+  const frame=BX(1.32,1.92,.13,goldM);g.add(frame);
+  const inner=BX(1.12,1.72,.1,brassM);g.add(inner);
+  const glass=new THREE.Mesh(new THREE.PlaneGeometry(1.02,1.62),LB({color:0x2a3040,emissive:new THREE.Color(.015,.015,.03)}));glass.position.z=.072;g.add(glass);
+  [[-1,1],[1,1],[-1,-1],[1,-1]].forEach(([xs,ys])=>{const o=SP(.075,8,goldM);o.position.set(xs*.6,ys*.9,.045);g.add(o);});
+  const arch=new THREE.Mesh(new THREE.TorusGeometry(.66,.075,8,22,Math.PI),goldM);arch.position.set(0,.96,.045);arch.rotation.z=Math.PI;g.add(arch);
+  const aTop=SP(.1,8,goldM);aTop.position.set(0,1.64,.045);g.add(aTop);
+  const clueT=mkc(220,90,(x,w,h)=>{
+    x.clearRect(0,0,w,h);
+    x.shadowColor='#ff3300';x.shadowBlur=14;
+    x.fillStyle='rgba(255,60,20,.82)';x.font='bold 17px Georgia,serif';x.textAlign='center';
+    x.fillText('WARDROBE SEAL',w/2,24);
+    x.font='bold 34px Georgia,serif';x.fillStyle='#ffd060';
+    x.fillText(WARD_GOAL.map(i=>WARD_RUNES[i]).join('  '),w/2,62);
+    x.shadowBlur=0;
+  });
+  const clue=new THREE.Mesh(new THREE.PlaneGeometry(.72,.3),BA({map:clueT,transparent:true,depthWrite:false}));
+  clue.position.set(0,-.45,.085);g.add(clue);
+  g.rotation.y=-Math.PI/2;g.position.set(4.84,2.1,-3.0);scene.add(g);
+})();
+
+// ══════════════════════════════════════════════════════════════
+//  STORM WINDOW  (left wall, back)
+// ══════════════════════════════════════════════════════════════
+let stormLight;
+(()=>{
+  const g=G();
+  const surr=BX(1.25,1.55,.32,LB({map:wallT,color:0x221408}));g.add(surr);
+  const sill=BX(1.3,.11,.38,LB({color:0x1a1008}));sill.position.set(0,-.74,.06);g.add(sill);
+  const frame=BX(1.05,1.32,.13,dkwM);g.add(frame);
+  const glass=new THREE.Mesh(new THREE.PlaneGeometry(.9,1.2),glassM);glass.position.z=.075;g.add(glass);
+  g.add(BX(.92,.035,.09,dkwM));g.add(BX(.035,1.22,.09,dkwM));
+  // Curtains
+  const curtM=LB({color:0x1a0808,side:THREE.DoubleSide});
+  const curtL=BX(.28,1.4,.04,curtM);curtL.position.set(-.5,0,.06);curtL.rotation.z=-.05;g.add(curtL);
+  const curtR=BX(.28,1.4,.04,curtM);curtR.position.set(.5,0,.06);curtR.rotation.z=.05;g.add(curtR);
+  g.position.set(-2.5,2.6,-5.9);scene.add(g);
+  stormLight=new THREE.PointLight(0x1a3388,.8,7);stormLight.position.set(-2.5,2.6,-7.2);scene.add(stormLight);
+})();
+
+// ══════════════════════════════════════════════════════════════
+//  MANTEL + DECORATIONS
+// ══════════════════════════════════════════════════════════════
+const mantel=BX(5.5,.12,.42,mdwM);mantel.position.set(0,1.32,-6.88);scene.add(mantel);
+const mantelF=BX(5.5,.25,.12,dkwM);mantelF.position.set(0,1.2,-6.78);scene.add(mantelF);
+
+// Decorative skulls on mantel
+function dSkull(x,y,z,sc,ry=0){
+  const g=G();const cm=LB({color:0xccba80});
+  const cr=SP(.1,10,cm);cr.scale.set(1,1.1,.9);g.add(cr);
+  const jw=BX(.17,.075,.14,cm);jw.position.set(0,-.11,.02);g.add(jw);
+  const em=LB({color:0x050202});
+  [-.046,.046].forEach(ex=>{const e=SP(.036,6,em);e.position.set(ex,.01,.09);g.add(e);});
+  g.userData={};g.scale.setScalar(sc);g.position.set(x,y,z);g.rotation.y=ry;scene.add(g);
+}
+dSkull(-2.1,1.38,-6.85,.78,.3);
+dSkull(0,   1.38,-6.85,.9,0);
+dSkull(2.1, 1.38,-6.85,.72,-.2);
+// Candles on mantel
+[-1.2,-.4,.4,1.2].forEach(x=>{
+  const c=CY(.025,.025,.18,6,candM);c.position.set(x,1.34,-6.82);scene.add(c);
+  const f=SP(.028,5,BA({color:0xff8800}));f.position.set(x,1.54,-6.82);scene.add(f);
+});
+
+// Iron cage in corner — atmosphere
+(()=>{
+  const g=G();
+  const top=CY(.35,.35,.04,8,ironM);top.position.y=.8;g.add(top);
+  const base=CY(.35,.35,.04,8,ironM);g.add(base);
+  for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2;const bar=CY(.014,.014,.8,5,ironM);bar.position.set(Math.cos(a)*.32,.4,Math.sin(a)*.32);g.add(bar);}
+  const hchain=CY(.01,.01,.5,5,ironM);hchain.position.y=1.05;g.add(hchain);
+  const hook=TR(.06,.015,10,ironM);hook.position.y=1.35;g.add(hook);
+  g.position.set(3.5,2.5,-1.8);scene.add(g);
+})();
+
+// Cobweb corners (flat planes with alpha texture)
+const webT=mkc(128,128,(x,w,h)=>{
+  x.clearRect(0,0,w,h);
+  x.strokeStyle='rgba(200,200,200,.45)';x.lineWidth=.8;
+  for(let r=20;r<h*.9;r+=14){x.beginPath();x.arc(0,0,r,-Math.PI/8,Math.PI/2.2);x.stroke();}
+  for(let a=0;a<Math.PI/2.2;a+=Math.PI/18){x.beginPath();x.moveTo(0,0);x.lineTo(Math.cos(a)*h,Math.sin(a)*h);x.stroke();}
+});
+[[-RW/2+.2,RH-.2,-RD/2+.2,0,Math.PI/2],[RW/2-.2,RH-.2,-RD/2+.2,0,-Math.PI/2]].forEach(([px,py,pz,rx,ry])=>{
+  const web=new THREE.Mesh(new THREE.PlaneGeometry(1.2,1.2),BA({map:webT,transparent:true,depthWrite:false,side:THREE.DoubleSide}));
+  web.position.set(px,py,pz);web.rotation.x=rx;web.rotation.y=ry;scene.add(web);
+});
+
+// Wall chains hanging
+[[-3.8,-.4],[3.8,-.4],[-4.8,1.5],[4.8,1.5]].forEach(([px,pz])=>{
+  for(let y=RH-.1;y>1.2;y-=.24){
+    const lk=TR(.065,.012,8,ironM);lk.position.set(px,y,pz);lk.rotation.z=(Math.round((RH-y)/.24)%2)*Math.PI/2;scene.add(lk);
+  }
+});
+
+// Potions on desk top
+[[3.3,.85,-.15,0x1a3a00],[3.3,.85,.05,0x3a0010],[3.3,.85,.25,0x001030]].forEach(([x,y,z,col])=>{
+  const m=LB({color:col,transparent:true,opacity:.75});
+  const b=CY(.045,.055,.22,8,m);b.position.set(x,y+.11,z);scene.add(b);
+  const n=CY(.022,.03,.09,6,m);n.position.set(x,y+.265,z);scene.add(n);
+  const s=CY(.028,.028,.03,6,LB({color:0x0a0400}));s.position.set(x,y+.315,z);scene.add(s);
+  const gl=new THREE.PointLight(col,.4,.9);gl.position.set(x,y+.15,z);scene.add(gl);
+});
+
+// ══════════════════════════════════════════════════════════════
+//  CANDELABRAS + LIGHTS
+// ══════════════════════════════════════════════════════════════
+const zoneLights=[];
+function makeCandelabra(x,z,tall){
+  const g=G(),h=tall?1.85:1.2;
+  const b1=CY(.23,.26,.07,8,ironM);b1.position.y=.035;g.add(b1);
+  const b2=CY(.13,.15,.09,8,ironM);b2.position.y=.11;g.add(b2);
+  const shaft=CY(.026,.042,h,8,ironM);shaft.position.y=h/2+.15;g.add(shaft);
+  // Decorative rings on shaft
+  for(let r=0;r<4;r++){const rng=CY(.04,.04,.04,8,ironM);rng.position.y=.4+r*.4;g.add(rng);}
+  const crown=CY(.18,.12,.09,6,ironM);crown.position.y=h+.19;g.add(crown);
+  for(let a=0;a<3;a++){
+    const ang=(a/3)*Math.PI*2;
+    const arm=BX(.25,.025,.025,ironM);arm.position.set(Math.cos(ang)*.14,h+.19,Math.sin(ang)*.14);arm.lookAt(new THREE.Vector3(x+Math.cos(ang),h+.19,z+Math.sin(ang)));g.add(arm);
+    const cy2=CY(.026,.026,.21,6,candM);cy2.position.set(Math.cos(ang)*.3,h+.31,Math.sin(ang)*.3);g.add(cy2);
+    const drip=CY(.02,.024,.05,5,candM);drip.position.set(Math.cos(ang)*.3,h+.21,Math.sin(ang)*.3);g.add(drip);
+    const fl=SP(.036,6,BA({color:0xff8800}));fl.position.set(Math.cos(ang)*.3,h+.43,Math.sin(ang)*.3);g.add(fl);
+  }
+  g.position.set(x,0,z);scene.add(g);
+}
+makeCandelabra(-3.5,-4.5,true);makeCandelabra(3.5,-4.5,true);
+makeCandelabra(-3.5, 3.8,true);makeCandelabra(3.5, 3.8,true);
+makeCandelabra(-4.1, 0.0,false);makeCandelabra(4.1, 0.0,false);
+
+// 4 zone point lights
+[[-3,2.2,-3],[3,2.2,-3],[-3,2.2,3],[3,2.2,3]].forEach(([px,py,pz])=>{
+  const pl=new THREE.PointLight(0xff6600,3.2,10);pl.position.set(px,py,pz);scene.add(pl);zoneLights.push(pl);
+});
+// Torch brackets on walls
+[[-4.78,2.6,-.5],[4.78,2.6,-.5],[-4.78,2.6,-3.5],[4.78,2.6,-3.5]].forEach(([px,py,pz])=>{
+  const bkt=BX(.1,.09,.32,ironM);bkt.position.set(px,py,pz);scene.add(bkt);
+  const tc=CY(.032,.042,.24,6,woodM);tc.position.set(px,py+.18,pz);scene.add(tc);
+  const tf=SP(.048,6,BA({color:0xff7700}));tf.position.set(px,py+.32,pz);scene.add(tf);
+  const tl=new THREE.PointLight(0xff5500,2.2,6);tl.position.set(px,py+.35,pz);scene.add(tl);zoneLights.push(tl);
+});
+
+// Floor candles
+const floorFlames=[];
+[[2.1,-1.1],[-2.1,-1.1],[0,-2.6],[0,1.2],[1.7,1.0],[-1.7,1.0],[2.4,-2.4],[-2.4,-2.4],[0,-4.5],[0,-6.0]].forEach(([px,pz])=>{
+  const stick=CY(.028,.028,.2,5,candM);stick.position.set(px,.1,pz);scene.add(stick);
+  const fl=SP(.03,5,BA({color:0xff6600}));fl.position.set(px,.24,pz);scene.add(fl);floorFlames.push(fl);
+});
+
+// Hanging lantern
+const lantGrp=G();
+const lBody=CY(.08,.08,.24,6,ironM);lBody.position.y=-.12;lantGrp.add(lBody);
+const lGls=CY(.065,.065,.18,6,LB({transparent:true,opacity:.5,color:0xffaa00}));lGls.position.y=-.12;lantGrp.add(lGls);
+const lFl=SP(.034,5,BA({color:0xffbb00}));lantGrp.add(lFl);
+const lCap=CY(.1,.08,.07,6,ironM);lCap.position.y=.1;lantGrp.add(lCap);
+// Chains up to ceiling
+for(let i=0;i<6;i++){const lk2=TR(.055,.01,8,ironM);lk2.position.set(0,RH-.9-i*.2,0);lk2.rotation.z=(i%2)*Math.PI/2;scene.add(lk2);}
+lantGrp.position.set(0,RH-.95,0);scene.add(lantGrp);
+const lantLight=new THREE.PointLight(0xff9922,3.0,9);lantLight.position.set(0,RH-1.1,0);scene.add(lantLight);
+zoneLights.push(lantLight);
+
+// ══════════════════════════════════════════════════════════════
+//  LIGHTING
+// ══════════════════════════════════════════════════════════════
+const ambient=new THREE.AmbientLight(0x3a1a08,5.0);scene.add(ambient);
+const mainFill=new THREE.PointLight(0xff5e18,3.2,24);mainFill.position.set(0,4.2,0);scene.add(mainFill);
+const altarFill=new THREE.PointLight(0xff9944,2.8,7);altarFill.position.set(0,4.0,-.5);scene.add(altarFill);
+
+// ══════════════════════════════════════════════════════════════
+//  RELICS
+// ══════════════════════════════════════════════════════════════
+const RELICS={
+  skull: {name:'Skull of Morgath', sym:'☠', order:'Place FIRST upon the altar'},
+  amulet:{name:'Amulet of Bael',   sym:'⛧', order:'Place SECOND upon the altar'},
+  tome:  {name:'Tome of Shadows',  sym:'📖',order:'Place THIRD upon the altar'},
+};
+
+function buildSkull(){
+  const g=G();
+  const bone=LB({color:0xd8c18c,emissive:new THREE.Color(.025,.015,.004)});
+  const oldBone=LB({color:0x9f8b58});
+  const shadow=LB({color:0x050202});
+  const cr=SP(.17,14,bone);cr.scale.set(1.05,1.18,.9);cr.position.set(0,.045,0);g.add(cr);
+  const face=SP(.135,12,bone);face.scale.set(.9,.95,.72);face.position.set(0,-.055,.055);g.add(face);
+  const brow=BX(.25,.036,.052,oldBone);brow.position.set(0,.015,.138);g.add(brow);
+  [-1,1].forEach(s=>{
+    const cheek=BX(.09,.045,.052,oldBone);cheek.position.set(s*.095,-.055,.135);cheek.rotation.z=s*.24;g.add(cheek);
+    const temple=SP(.05,7,oldBone);temple.scale.set(.75,.95,.55);temple.position.set(s*.155,.005,.035);g.add(temple);
+  });
+  const jaw=BX(.23,.11,.17,bone);jaw.position.set(0,-.18,.045);g.add(jaw);
+  const chin=SP(.07,8,oldBone);chin.scale.set(1.5,.45,.7);chin.position.set(0,-.24,.07);g.add(chin);
+  [-1,1].forEach(s=>{
+    const eye=SP(.055,8,shadow);eye.scale.set(1.1,.85,.65);eye.position.set(s*.067,-.006,.155);g.add(eye);
+    const glow=SP(.018,6,BA({color:0xff7a00}));glow.position.set(s*.067,-.006,.185);g.add(glow);
+  });
+  const nose=new THREE.Mesh(new THREE.ConeGeometry(.038,.07,3),shadow);
+  nose.rotation.x=Math.PI/2;nose.rotation.z=Math.PI;nose.position.set(0,-.075,.165);g.add(nose);
+  for(let t=0;t<8;t++){
+    const th=BX(.022,.055,.026,LB({color:0xe7d6aa}));
+    th.position.set((t-3.5)*.027,-.205,.145);g.add(th);
+  }
+  [
+    [.055,.125,.145,.01,.1,.012,.45],
+    [.02,.155,.15,.008,.075,.012,-.35],
+    [-.07,.102,.145,.009,.08,.012,-.5],
+    [.095,-.095,.15,.008,.075,.012,.2]
+  ].forEach(([x,y,z,w,h,d,rz])=>{
+    const crack=BX(w,h,d,shadow);crack.position.set(x,y,z);crack.rotation.z=rz;g.add(crack);
+  });
+  g.userData={relicId:'skull',isRelic:true};return g;
+}
+
+function buildAmulet(){
+  const g=G();
+  const metal=LB({color:0x8b5d16,emissive:new THREE.Color(.08,.035,0)});
+  const darkMetal=LB({color:0x3a2108});
+  const redM=LB({color:0x8b0500,emissive:new THREE.Color(.38,0,0)});
+  const oi=new THREE.Mesh(new THREE.TorusGeometry(.15,.024,10,36),metal);g.add(oi);
+  const bevel1=new THREE.Mesh(new THREE.TorusGeometry(.118,.012,8,30),darkMetal);g.add(bevel1);
+  const bevel2=new THREE.Mesh(new THREE.TorusGeometry(.18,.01,8,36),metal);g.add(bevel2);
+  const gem=new THREE.Mesh(new THREE.CylinderGeometry(.052,.065,.038,8),redM);
+  gem.rotation.x=Math.PI/2;gem.position.z=.02;g.add(gem);
+  const gemTop=SP(.052,8,BA({color:0xff2200}));gemTop.scale.set(1,1,.35);gemTop.position.z=.045;g.add(gemTop);
+  const pm=LB({color:0xd0a030,emissive:new THREE.Color(.16,.06,0)});
+  for(let i=0;i<5;i++){
+    const a1=(i*4*Math.PI/5)-Math.PI/2,a2=((i+2)*4*Math.PI/5)-Math.PI/2;
+    const x1=Math.cos(a1)*.112,y1=Math.sin(a1)*.112,x2=Math.cos(a2)*.112,y2=Math.sin(a2)*.112;
+    const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
+    const bar=BX(len,.014,.014,pm);bar.position.set((x1+x2)/2,(y1+y2)/2,.048);bar.rotation.z=Math.atan2(dy,dx);g.add(bar);
+  }
+  for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2-Math.PI/2;const bead=SP(.018,6,BA({color:0xff6600}));bead.position.set(Math.cos(a)*.13,Math.sin(a)*.13,.055);g.add(bead);}
+  for(let i=-2;i<=2;i++){
+    const link=TR(.032,.006,10,metal);link.scale.set(.7,1.05,1);
+    link.position.set(i*.042,.188+Math.abs(i)*.01,0);link.rotation.z=i*.12;g.add(link);
+  }
+  const bail=TR(.045,.01,12,metal);bail.position.set(0,.165,0);g.add(bail);
+  g.userData={relicId:'amulet',isRelic:true};return g;
+}
+
+function buildTome(){
+  const g=G();
+  const leather=LB({color:0x210700,emissive:new THREE.Color(.025,0,0)});
+  const pageM=LB({color:0xc9b77e});
+  const cover=BX(.3,.38,.055,leather);cover.position.z=.035;g.add(cover);
+  const back=BX(.295,.375,.04,LB({color:0x100300}));back.position.z=-.025;g.add(back);
+  const pages=BX(.24,.33,.08,pageM);pages.position.set(.035,0,0);g.add(pages);
+  for(let i=0;i<7;i++){
+    const line=BX(.19,.004,.006,LB({color:0x8f7b4c}));
+    line.position.set(.055,-.13+i*.043,.05);g.add(line);
+  }
+  const spine=BX(.075,.39,.095,LB({color:0x0d0300}));spine.position.x=-.17;g.add(spine);
+  [[-1,1],[1,1],[-1,-1],[1,-1]].forEach(([xs,ys])=>{
+    const cl=BX(.052,.052,.065,goldM);cl.position.set(xs*.123,ys*.16,.075);g.add(cl);
+  });
+  [-1,0,1].forEach(y=>{const band=BX(.082,.024,.105,goldM);band.position.set(-.17,y*.115,.085);g.add(band);});
+  const rt=mkc(160,220,(x,w,h)=>{
+    x.fillStyle='#130300';x.fillRect(0,0,w,h);
+    for(let i=0;i<220;i++){x.fillStyle=`rgba(255,120,20,${Math.random()*.08})`;x.fillRect(Math.random()*w,Math.random()*h,Math.random()*8,1);}
+    x.strokeStyle='#8a5a10';x.lineWidth=4;x.strokeRect(10,10,w-20,h-20);
+    x.beginPath();x.arc(w/2,h*.42,48,0,Math.PI*2);x.stroke();
+    x.shadowColor='#ff8800';x.shadowBlur=16;x.font='42px Georgia,serif';x.fillStyle='#ffd060';x.textAlign='center';x.fillText('ᛟ',w/2,h*.42+15);
+    x.shadowBlur=0;x.font='bold 12px Georgia,serif';x.fillStyle='rgba(220,170,70,.75)';
+    ['LIBER','OBSCURA'].forEach((t,i)=>x.fillText(t,w/2,h*.72+i*18));
+  });
+  const cf=new THREE.Mesh(new THREE.PlaneGeometry(.235,.325),LB({map:rt,transparent:true}));
+  cf.position.set(.025,0,.067);g.add(cf);
+  const clasp=BX(.062,.05,.09,goldM);clasp.position.set(.148,0,.08);g.add(clasp);
+  const strap=BX(.035,.34,.085,LB({color:0x090200}));strap.position.set(.09,0,.085);g.add(strap);
+  g.userData={relicId:'tome',isRelic:true};return g;
+}
+
+// Create relics — positioned IN FRONT of each container, reachable
+const skullRelic =buildSkull();
+const amuletRelic=buildAmulet();
+const tomeRelic  =buildTome();
+
+skullRelic.position.set(2.4,.58,-3.5);skullRelic.rotation.y=.35;skullRelic.visible=false;
+skullRelic.userData.originalPos=skullRelic.position.clone();scene.add(skullRelic);
+
+amuletRelic.position.set(-3.2,.88,-2.0);amuletRelic.rotation.x=Math.PI/2;amuletRelic.visible=false;
+amuletRelic.userData.originalPos=amuletRelic.position.clone();scene.add(amuletRelic);
+
+tomeRelic.position.set(3.2,.5,.5);tomeRelic.rotation.y=-Math.PI/2;tomeRelic.visible=false;
+tomeRelic.userData.originalPos=tomeRelic.position.clone();scene.add(tomeRelic);
+
+const relicGlows={
+  skull:  new THREE.PointLight(0xddaa44,0,2.0),
+  amulet: new THREE.PointLight(0xff2200,0,2.0),
+  tome:   new THREE.PointLight(0xff8800,0,2.0),
+};
+relicGlows.skull.position.copy(skullRelic.position);
+relicGlows.amulet.position.copy(amuletRelic.position);
+relicGlows.tome.position.copy(tomeRelic.position);
+Object.values(relicGlows).forEach(l=>scene.add(l));
+
+// ══════════════════════════════════════════════════════════════
+//  AUDIO
+// ══════════════════════════════════════════════════════════════
+const AC=new(window.AudioContext||window.webkitAudioContext)();
+function startDrone(){
+  const g=AC.createGain();g.gain.value=.042;g.connect(AC.destination);
+  const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=44;
+  const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=150;
+  o.connect(f);f.connect(g);o.start();
+  const lfo=AC.createOscillator(),lg=AC.createGain();
+  lfo.frequency.value=.1;lg.gain.value=5;lfo.connect(lg);lg.connect(o.frequency);lfo.start();
+}
+function playBoom(){
+  const g=AC.createGain();g.gain.value=.48;g.connect(AC.destination);
+  const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=200;o.connect(g);o.start();
+  o.frequency.exponentialRampToValueAtTime(28,AC.currentTime+.45);
+  g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.45);setTimeout(()=>o.stop(),550);
+}
+function playChime(){
+  [440,554,660,880].forEach((f,i)=>setTimeout(()=>{
+    const g=AC.createGain();g.gain.value=.1;g.connect(AC.destination);
+    const o=AC.createOscillator();o.type='sine';o.frequency.value=f;o.connect(g);o.start();
+    g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+1.2);setTimeout(()=>o.stop(),1300);
+  },i*230));
+}
+function playWin(){
+  [220,277,330,440,554,660].forEach((f,i)=>setTimeout(()=>{
+    const g=AC.createGain();g.gain.value=.15;g.connect(AC.destination);
+    const o=AC.createOscillator();o.type='sine';o.frequency.value=f;o.connect(g);o.start();
+    g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+2.2);setTimeout(()=>o.stop(),2300);
+  },i*300));
+}
+function playCreak(){
+  const g=AC.createGain();g.gain.value=.13;g.connect(AC.destination);
+  const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=260;
+  const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=520;
+  o.connect(f);f.connect(g);o.start();
+  o.frequency.linearRampToValueAtTime(65,AC.currentTime+.7);
+  g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.7);setTimeout(()=>o.stop(),800);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CONTROLS
+// ══════════════════════════════════════════════════════════════
+let yaw=Math.PI,pitch=0;
+const keys={};let started=false;
+document.addEventListener('keydown',e=>{if(!KP.active)keys[e.code]=true;});
+document.addEventListener('keyup',  e=>{keys[e.code]=false;});
+document.addEventListener('mousemove',e=>{
+  if(!S.locked)return;
+  yaw  -=e.movementX*.0022;
+  pitch-=e.movementY*.0022;
+  pitch=Math.max(-Math.PI/2.6,Math.min(Math.PI/2.6,pitch));
+});
+document.addEventListener('pointerlockchange',()=>S.locked=!!document.pointerLockElement);
+
+function requestGamePointerLock(){
+  if(!renderer.domElement.requestPointerLock)return;
+  try{
+    const req=renderer.domElement.requestPointerLock();
+    if(req&&req.catch)req.catch(()=>{S.locked=true;});
+    setTimeout(()=>{if(started&&!document.pointerLockElement)S.locked=true;},250);
+  }catch(e){S.locked=true;}
+}
+
+function exitGamePointerLock(){
+  if(!document.pointerLockElement||!document.exitPointerLock)return;
+  try{
+    const req=document.exitPointerLock();
+    if(req&&req.catch)req.catch(()=>{});
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RAYCASTING — fires from camera through right-hand aim point
+// ══════════════════════════════════════════════════════════════
+const ray=new THREE.Raycaster(undefined,undefined,.01,7.0);
+// Right hand screen offset (normalised device coords, lower-right)
+// We offset slightly right so the ray matches where the hand points
+const HAND_NDC=new THREE.Vector2(.18,-.22);
+
+function relicParent(obj){
+  let o=obj;while(o&&!o.userData.relicId&&o.parent)o=o.parent;return o?.userData.relicId?o:null;
+}
+function hasAnc(obj,key){let o=obj;while(o){if(o.userData?.[key])return true;o=o.parent;}return false;}
+function ancWith(obj,key){let o=obj;while(o){if(o.userData?.[key])return o;o=o.parent;}return null;}
+
+// Build flat list of all meshes in a relic group for reliable raycasting
+function relicMeshes(r){const m=[];r.traverse(c=>{if(c.isMesh)m.push(c);});return m;}
+
+function isRelicPickable(r){
+  return r.visible && !r.userData.placed;
+}
+
+function prepareRelicForPickup(r){
+  r.userData.placed=false;
+  r.userData.placedSlot=null;
+  r.scale.setScalar(1);
+}
+
+// Proximity pickup — if relic is within arm's reach and player clicks anywhere near it
+function tryProximityPickup(){
+  const reach=2.2; // metres
+  const relics=[skullRelic,amuletRelic,tomeRelic];
+  for(const r of relics){
+    if(!isRelicPickable(r))continue;
+    const d=cam.position.distanceTo(r.position);
+    if(d<reach){pickUp(r);return true;}
+  }
+  return false;
+}
+
+function interactables(){
+  const list=[];
+  [skullRelic,amuletRelic,tomeRelic].forEach(r=>{
+    if(isRelicPickable(r))r.traverse(c=>{if(c.isMesh)list.push(c);});
+  });
+  chestGrp.traverse(c=>{if(c.userData.isChest)list.push(c);});
+  wardGrp.traverse(c=>{if(c.userData.isWardrobe)list.push(c);});
+  wardGrp.traverse(c=>{if(c.userData.isRuneDisc)list.push(c);});
+  deskGrp.traverse(c=>{if(c.userData.isDesk)list.push(c);});
+  if(chestKey.visible)chestKey.traverse(c=>{if(c.isMesh)list.push(c);});
+  if(!S.bookPulled)hiddenBook.traverse(c=>{if(c.isMesh)list.push(c);});
+  altar.traverse(c=>{if(c.userData.isSlot)list.push(c);});
+  list.push(altarTopMesh);
+  if(S.won&&!KP.unlocked)list.push(kpHitMesh);
+  return list;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  INTERACTION
+// ══════════════════════════════════════════════════════════════
+function handleClick(){
+  if(!started)return;
+  if(KP.active)return;
+  if(!S.locked){requestGamePointerLock();return;}
+
+  // Fire ray from BOTH screen-center AND right-hand NDC offset — use whichever hits first
+  const allInteract=interactables();
+
+  // Ray 1: screen centre (classic)
+  ray.setFromCamera({x:0,y:0},cam);
+  let hits=ray.intersectObjects(allInteract,true);
+
+  // Ray 2: right-hand offset — if centre misses, try hand aim point
+  if(!hits.length){
+    ray.setFromCamera(HAND_NDC,cam);
+    hits=ray.intersectObjects(allInteract,true);
+  }
+
+  if(S.held){
+    // ── PLACING on altar ──────────────────────────────────────
+    // Try ray hits on table/slots
+    ray.setFromCamera({x:0,y:0},cam);
+    const slotMeshes=[];altar.traverse(c=>{if(c.userData.isSlot)slotMeshes.push(c);});
+    const tableHit=ray.intersectObject(altarTopMesh,false);
+    const slotHit=ray.intersectObjects(slotMeshes,false);
+
+    // Also try hand-aim ray
+    ray.setFromCamera(HAND_NDC,cam);
+    const tableHit2=ray.intersectObject(altarTopMesh,false);
+    const slotHit2=ray.intersectObjects(slotMeshes,false);
+
+    const allH=[...tableHit,...slotHit,...tableHit2,...slotHit2];
+
+    if(allH.length){
+      // Always try placing on the next required slot in sequence
+      if(!S.slots[S.placed]){tryPlace(S.placed);return;}
+    }
+
+    // Proximity place — if close enough to altar place on the NEXT correct slot
+    const altarWorldPos=altar.position;
+    if(cam.position.distanceTo(altarWorldPos)<2.2){
+      // Only try the next required slot (S.placed), not any empty slot
+      if(!S.slots[S.placed]){tryPlace(S.placed);return;}
+    }
+
+    showHint('Walk up to the altar and click it to place the relic.');
+    return;
+  }
+
+  // ── PICKUP / OPEN containers ───────────────────────────────
+  if(hits.length){
+    const obj=hits[0].object;
+    if(hasAnc(obj,'isChestKey')){pickUpChestKey();return;}
+    const runeObj=ancWith(obj,'isRuneDisc');if(runeObj){cycleWardRune(runeObj);return;}
+    if(hasAnc(obj,'isBookLever')){pullBookLever();return;}
+    const rp=relicParent(obj);if(rp){pickUp(rp);return;}
+    if(hasAnc(obj,'isChest')){openChest();return;}
+    if(hasAnc(obj,'isWardrobe')){openWardrobe();return;}
+    if(hasAnc(obj,'isDesk')){openDesk();return;}
+    if(obj.userData.isSlot&&S.held){tryPlace(obj.userData.slotIndex);return;}
+    if(obj.userData.isKeypad){openKp();return;}
+  }
+
+  // ── PROXIMITY FALLBACK — if hand ray missed but relic is close ─
+  // This is the key fix: containers and relics within arm's reach
+  // are picked up/opened even if the geometry ray missed
+  const reach=2.5;
+
+  // Check relics first
+  if(chestKey.visible&&cam.position.distanceTo(chestKey.position)<reach){pickUpChestKey();return;}
+  if(!S.bookPulled&&cam.position.distanceTo(hiddenBook.position)<reach+.4){pullBookLever();return;}
+  const relics=[skullRelic,amuletRelic,tomeRelic];
+  for(const r of relics){
+    if(!isRelicPickable(r))continue;
+    if(cam.position.distanceTo(r.position)<reach){pickUp(r);return;}
+  }
+  // Check containers
+  if(cam.position.distanceTo(chestGrp.position)<reach){openChest();return;}
+  if(cam.position.distanceTo(wardGrp.position)<reach+0.5){openWardrobe();return;}
+  if(cam.position.distanceTo(deskGrp.position)<reach){openDesk();return;}
+  // Keypad proximity
+  if(S.won&&!KP.unlocked){
+    const kpWorldPos=new THREE.Vector3(door2Panel.position.x+door2OpenW/2-.32,1.3,CZ2+.22);
+    if(cam.position.distanceTo(kpWorldPos)<reach){openKp();return;}
+  }
+}
+renderer.domElement.addEventListener('click',e=>{
+  // Brief grab pulse on any click (feels tactile)
+  if(started&&S.locked&&!KP.active){H.grabbing=true;setTimeout(()=>{if(!S.held)H.grabbing=false;},220);}
+  handleClick();
+});
+document.addEventListener('keydown',e=>{
+  if(!started||KP.active)return;
+  if(e.code==='KeyE'&&S.held)dropRelic();
+  if(e.code==='KeyG')godMode();
+  if(e.code==='Space'||e.code==='KeyF')handleClick();
+});
+
+// ══════════════════════════════════════════════════════════════
+//  PUZZLE ITEMS
+// ══════════════════════════════════════════════════════════════
+function pickUpChestKey(){
+  if(S.hasChestKey)return;
+  S.hasChestKey=true;
+  chestKey.visible=false;keyGlow.intensity=0;
+  playChime();
+  showHint('Rusty key collected. Take it to the iron chest in the back-right corner.');
+  showPopup('RUSTY CHEST KEY<br><small style="color:#777;font-size:.78em">Unlocks the iron chest</small>');
+}
+
+function cycleWardRune(obj){
+  if(S.wardOpen)return;
+  const idx=obj.userData.runeIndex;
+  S.wardRunes[idx]=(S.wardRunes[idx]+1)%WARD_RUNES.length;
+  refreshWardRune(idx);playChime();
+  const solved=S.wardRunes.every((v,i)=>v===WARD_GOAL[i]);
+  if(solved){
+    S.wardSolved=true;refreshAllWardRunes();
+    showHint('The wardrobe seal accepts the mirror runes. The doors unlock.');
+    setTimeout(openWardrobe,450);
+  } else {
+    showHint('Rotate the wardrobe runes to match the clue written on the mirror.');
+  }
+}
+
+function pullBookLever(){
+  if(S.bookPulled)return;
+  S.bookPulled=true;hiddenBook.userData.pulled=true;bookGlow.intensity=0;
+  let pull=0;const startX=hiddenBook.position.x;
+  const iv=setInterval(()=>{
+    pull+=.025;hiddenBook.position.x=startX+Math.min(pull,.18);
+    hiddenBook.rotation.z=-Math.min(pull*1.7,.28);
+    if(pull>=.18)clearInterval(iv);
+  },16);
+  playCreak();
+  showHint('A mechanism clicks inside the desk. The drawer can now be opened.');
+  showPopup('MARKED BOOK PULLED<br><small style="color:#777;font-size:.78em">The desk lock releases</small>');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CONTAINER OPEN
+// ══════════════════════════════════════════════════════════════
+function openChest(){
+  if(S.chestOpen)return;
+  if(!S.hasChestKey){
+    showHint('The iron chest is locked. Find the rusty key on a bookshelf first.');
+    showPopup('LOCKED CHEST<br><small style="color:#777;font-size:.78em">Needs a rusty key</small>');
+    return;
+  }
+  S.chestOpen=true;playCreak();
+  const lid=chestGrp.children.find(c=>c.userData.isLid);
+  if(lid){let a=0;const iv=setInterval(()=>{a+=.04;lid.rotation.x=-Math.min(a,Math.PI*.6);lid.position.y=.64+Math.sin(Math.min(a,Math.PI*.6))*.13;if(a>=Math.PI*.6)clearInterval(iv);},16);}
+  skullRelic.position.set(2.0,.62,-3.1);
+  skullRelic.userData.originalPos=skullRelic.position.clone();
+  prepareRelicForPickup(skullRelic);
+  skullRelic.visible=true;
+  relicGlows.skull.position.copy(skullRelic.position);relicGlows.skull.intensity=2.2;
+  showHint('☠  The chest opens — the Skull of Morgath lies within! Click it to pick it up.');
+  showPopup('☠ SKULL OF MORGATH<br><small style="color:#777;font-size:.78em">Walk close · Click to pick up</small>');
+}
+
+function openWardrobe(){
+  if(S.wardOpen)return;
+  if(!S.wardSolved){
+    showHint('The wardrobe seal is locked. Match its three runes to the clue on the mirror.');
+    showPopup('RUNE LOCK<br><small style="color:#777;font-size:.78em">Click the wardrobe discs to rotate them</small>');
+    return;
+  }
+  S.wardOpen=true;playCreak();
+  wardGrp.children.forEach(c=>{
+    if(c.userData.isWardrobeDoor){const s=c.userData.side;let a=0;const iv=setInterval(()=>{a+=.035;c.rotation.y=s*Math.min(a,Math.PI*.52);if(a>=Math.PI*.52)clearInterval(iv);},16);}
+  });
+  amuletRelic.position.set(-3.05,.9,-2.0);
+  amuletRelic.userData.originalPos=amuletRelic.position.clone();
+  prepareRelicForPickup(amuletRelic);
+  amuletRelic.visible=true;
+  relicGlows.amulet.position.copy(amuletRelic.position);relicGlows.amulet.intensity=2.2;
+  showHint('⛧  The wardrobe swings open — the Amulet of Bael glints in the dark! Click it.');
+  showPopup('⛧ AMULET OF BAEL<br><small style="color:#777;font-size:.78em">Walk close · Click to pick up</small>');
+}
+
+function openDesk(){
+  if(S.deskOpen)return;
+  if(!S.bookPulled){
+    showHint('The desk drawer is sealed. Pull the glowing marked book on the bookshelf.');
+    showPopup('SEALED DRAWER<br><small style="color:#777;font-size:.78em">A book lever unlocks it</small>');
+    return;
+  }
+  S.deskOpen=true;playCreak();
+  let slide=0;const iv=setInterval(()=>{slide+=.016;drawerParts.forEach(c=>{if(c.position.z<.74)c.position.z+=.016;});if(slide>=.38)clearInterval(iv);},16);
+  tomeRelic.position.set(3.08,.52,.5);
+  tomeRelic.userData.originalPos=tomeRelic.position.clone();
+  prepareRelicForPickup(tomeRelic);
+  tomeRelic.visible=true;
+  relicGlows.tome.position.copy(tomeRelic.position);relicGlows.tome.intensity=2.2;
+  showHint('📖  The drawer slides open — the Tome of Shadows! Click it to pick it up.');
+  showPopup('📖 TOME OF SHADOWS<br><small style="color:#777;font-size:.78em">Walk close · Click to pick up</small>');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PICKUP / PLACE
+// ══════════════════════════════════════════════════════════════
+function pickUp(r){
+  if(S.held)return;
+  if(r.userData.placed){showHint('That relic is already fixed on the altar.');return;}
+  S.held=r;const rid=r.userData.relicId;
+  setHandGrab(true); // close right hand around relic
+  document.getElementById('hname').textContent=RELICS[rid].name;
+  relicGlows[rid].intensity=0;
+  document.getElementById('en').textContent=RELICS[rid].name;
+  document.getElementById('es').textContent=RELICS[rid].sym;
+  document.getElementById('eo').textContent=RELICS[rid].order;
+  document.getElementById('examine').classList.add('on');
+  setTimeout(()=>document.getElementById('examine').classList.remove('on'),5000);
+  showHint(`Picked up ${RELICS[rid].name} — walk to the altar and click it to place.`);
+}
+
+function dropRelic(){
+  if(!S.held)return;const rid=S.held.userData.relicId;
+  S.held.position.copy(S.held.userData.originalPos);
+  S.held.scale.setScalar(1);
+  S.held.userData.placed=false;
+  S.held.userData.placedSlot=null;
+  relicGlows[rid].intensity=.9;relicGlows[rid].position.copy(S.held.userData.originalPos);
+  S.held=null;setHandGrab(false);document.getElementById('hname').textContent='nothing';
+}
+
+function tryPlace(i){
+  if(!S.held)return;
+  if(S.placed>=3||S.won)return; // already done
+  if(S.slots[i]){showHint('That slot is already filled.');return;}
+  // Enforce strict sequence: slot 0 first, 1 second, 2 third
+  if(i!==S.placed){showHint('Place the relics in order: I first, II second, III third.');return;}
+  const rid=S.held.userData.relicId,exp=S.order[i];
+  if(rid===exp){
+    const sd=slotDefs[i];
+    const placedRelic=S.held;
+    const spin=Math.random()*Math.PI*2;
+    const placeY={skull:1.13,amulet:.962,tome:.985}[rid];
+    const wp=new THREE.Vector3(sd.x,placeY,sd.z).add(altar.position);
+    placedRelic.position.copy(wp);
+    placedRelic.userData.placed=true;
+    placedRelic.userData.placedSlot=i;
+    if(rid==='skull'){
+      placedRelic.rotation.set(0,spin,0);
+      placedRelic.scale.setScalar(1.05);
+    } else if(rid==='amulet'){
+      placedRelic.rotation.set(Math.PI/2,0,spin);
+      placedRelic.scale.setScalar(1.05);
+    } else {
+      placedRelic.rotation.set(-Math.PI/2,0,spin);
+      placedRelic.scale.setScalar(1.0);
+    }
+    S.slots[i]=rid;
+    const newPlaced=S.placed+1; // compute BEFORE nulling held
+    S.placed=newPlaced;
+    S.held=null;setHandGrab(false);
+    document.getElementById('hname').textContent='nothing';
+    document.getElementById('d'+i).classList.add('lit');
+    slotRingMats[i].color.setHex(0x00ff66);
+    socketGlows[i].color.setHex(0x00cc44);
+    socketGlows[i].intensity=1.5;
+    playChime();
+    if(newPlaced<3){
+      escalate(newPlaced);
+      showHint(`❆ Correct! ${3-newPlaced} relic${3-newPlaced===1?'':'s'} remain.`);
+    } else {
+      // newPlaced===3 — verify ALL slots match order before opening door
+      const allOk=S.slots[0]==='skull'&&S.slots[1]==='amulet'&&S.slots[2]==='tome';
+      if(allOk){escalate(3);setTimeout(triggerWin,2400);}
+    }
+  } else {
+    playBoom();
+    const rid2=S.held.userData.relicId;
+    S.held.position.copy(S.held.userData.originalPos);
+    S.held.scale.setScalar(1);
+    S.held.userData.placed=false;
+    S.held.userData.placedSlot=null;
+    relicGlows[rid2].intensity=1.0;relicGlows[rid2].position.copy(S.held.userData.originalPos);
+    S.held=null;setHandGrab(false);
+    document.getElementById('hname').textContent='nothing';
+    const bo=document.getElementById('blood');
+    bo.style.background='rgba(160,0,0,.6)';bo.style.transition='background .1s';
+    setTimeout(()=>{bo.style.background='rgba(0,0,0,0)';bo.style.transition='background 2s';},220);
+    const sav=zoneLights.map(l=>l.intensity);
+    zoneLights.forEach(l=>l.intensity=0);mainFill.intensity=0;altarFill.intensity=0;
+    setTimeout(()=>{zoneLights.forEach((l,i2)=>l.intensity=sav[i2]);mainFill.intensity=3.2;altarFill.intensity=2.8;},480);
+    showHint('⚠ Wrong relic for this slot! Order: Skull → Amulet → Tome.');
+  }
+}
+
+function escalate(phase){
+  if(phase===1){ambient.intensity=3.8;zoneLights.forEach(l=>l.color.setHex(0xff2200));scene.fog=new THREE.FogExp2(0x0a0000,.058);showHint('The candles gutter. The walls breathe. Something wakes...');}
+  else if(phase===2){ambient.intensity=2.5;zoneLights.forEach(l=>{l.color.setHex(0x0022ff);l.intensity*=.6;});mainFill.color.setHex(0x100028);scene.fog=new THREE.FogExp2(0x000008,.088);showHint('Cold blue light floods the room. One relic remains...');}
+  else if(phase===3){showHint('❆ ALL RELICS PLACED. The ritual trembles to life... ❆');}
+}
+
+function godMode(){
+  S.hasChestKey=true;chestKey.visible=false;keyGlow.intensity=0;
+  S.wardSolved=true;refreshAllWardRunes();
+  S.bookPulled=true;bookGlow.intensity=0;
+  const ids=['skull','amulet','tome'];
+  const rm={skull:skullRelic,amulet:amuletRelic,tome:tomeRelic};
+  let d=0;
+  ids.forEach((id,i)=>{
+    if(S.slots[i])return;
+    setTimeout(()=>{const r=rm[id];r.visible=true;r.userData.relicId=id;S.held=r;tryPlace(i);},d);
+    d+=500;
+  });
+}
+
+function triggerWin(){
+  S.won=true;playWin();doorOpen=true;
+  // Stop the countdown
+  if(timerInterval)clearInterval(timerInterval);
+  timerEl.style.color='#00ff66';timerEl.classList.remove('danger');
+  mainFill.color.setHex(0xffaa44);mainFill.intensity=8;
+  exitLight.intensity=8;
+  document.getElementById('doorflash').style.background='rgba(200,120,30,.15)';
+  let cy=0;const ci=setInterval(()=>{
+    const cols=[0xff0000,0xff8800,0xffff00,0xffffff];
+    zoneLights.forEach(l=>l.color.setHex(cols[cy%cols.length]));
+    if(++cy>12){clearInterval(ci);zoneLights.forEach(l=>{l.color.setHex(0xffffcc);l.intensity=3.0;});mainFill.color.setHex(0xff9944);mainFill.intensity=5;}
+  },240);
+  scene.fog=new THREE.FogExp2(0x020100,.03);
+  S.corridorUnlocked=true;
+  showHint('✦ RITUAL COMPLETE — THE DOOR IS OPEN. Enter the corridor and enter the code. ✦');
+}
+
+function beginOutsideFinale(){
+  if(S.outsideStarted)return;
+  S.outsideStarted=true;
+  showHint('You escaped into the Egyptian night. Turn around — the whole chamber was buried inside a pyramid.');
+  showPopup('EGYPTIAN NIGHTFALL<br><small style="color:#777;font-size:.78em">The pyramid releases you</small>');
+  if(S.outsideWinTimer)clearTimeout(S.outsideWinTimer);
+  S.outsideWinTimer=setTimeout(()=>{
+    document.getElementById('win').style.display='flex';
+  },15000);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  HUD
+// ══════════════════════════════════════════════════════════════
+let hintTimer;
+function showHint(txt){
+  const el=document.getElementById('hint');el.innerHTML=txt;el.classList.add('on');
+  clearTimeout(hintTimer);hintTimer=setTimeout(()=>el.classList.remove('on'),5500);
+}
+let popTimer;
+function showPopup(html){
+  const el=document.getElementById('popup');el.innerHTML=html;el.classList.add('on');
+  clearTimeout(popTimer);popTimer=setTimeout(()=>el.classList.remove('on'),4000);
+}
+
+const prmEl=document.getElementById('prm');
+function checkHover(){
+  const allI=interactables();
+  // Dual ray: centre first, then right-hand offset
+  ray.setFromCamera({x:0,y:0},cam);
+  let hits=ray.intersectObjects(allI,true);
+  if(!hits.length){ray.setFromCamera(HAND_NDC,cam);hits=ray.intersectObjects(allI,true);}
+
+  // Proximity labels (works even when geometry ray misses)
+  let lbl='';
+  const reach=2.5;
+  if(!S.held){
+    if(chestKey.visible&&cam.position.distanceTo(chestKey.position)<reach)lbl='[ CLICK ]  PICK UP RUSTY KEY';
+    else if(!S.bookPulled&&cam.position.distanceTo(hiddenBook.position)<reach+.4)lbl='[ CLICK ]  PULL MARKED BOOK';
+    if(!lbl)for(const r of [skullRelic,amuletRelic,tomeRelic]){
+      if(isRelicPickable(r)&&cam.position.distanceTo(r.position)<reach){
+        lbl='[ CLICK ]  PICK UP '+RELICS[r.userData.relicId].name.toUpperCase();break;
+      }
+    }
+    if(!lbl){
+      if(!S.chestOpen&&cam.position.distanceTo(chestGrp.position)<reach)lbl=S.hasChestKey?'[ CLICK ]  UNLOCK CHEST':'LOCKED CHEST — FIND KEY';
+      else if(!S.wardOpen&&cam.position.distanceTo(wardGrp.position)<reach+0.5)lbl=S.wardSolved?'[ CLICK ]  OPEN WARDROBE':'RUNE LOCK — MATCH MIRROR CLUE';
+      else if(!S.deskOpen&&cam.position.distanceTo(deskGrp.position)<reach)lbl=S.bookPulled?'[ CLICK ]  OPEN DRAWER':'SEALED DRAWER — PULL MARKED BOOK';
+    }
+  }
+  // Altar proximity when holding
+  if(S.held&&cam.position.distanceTo(altar.position)<2.2)lbl='[ CLICK ]  PLACE ON ALTAR';
+
+  // Ray-based labels override if cleaner
+  if(hits.length&&!lbl){
+    const obj=hits[0].object;
+    if(hasAnc(obj,'isChestKey'))lbl='[ CLICK ]  PICK UP RUSTY KEY';
+    else if(hasAnc(obj,'isRuneDisc'))lbl=S.wardSolved?'WARDROBE SEAL UNLOCKED':'[ CLICK ]  ROTATE RUNE';
+    else if(hasAnc(obj,'isBookLever'))lbl=S.bookPulled?'Book lever pulled':'[ CLICK ]  PULL MARKED BOOK';
+    else if(hasAnc(obj,'isChest'))lbl=S.chestOpen?'Chest is open':(S.hasChestKey?'[ CLICK ]  UNLOCK CHEST':'LOCKED CHEST — FIND KEY');
+    else if(hasAnc(obj,'isWardrobe'))lbl=S.wardOpen?'Wardrobe is open':(S.wardSolved?'[ CLICK ]  OPEN WARDROBE':'RUNE LOCK — MATCH MIRROR CLUE');
+    else if(hasAnc(obj,'isDesk'))lbl=S.deskOpen?'Drawer is open':(S.bookPulled?'[ CLICK ]  OPEN DRAWER':'SEALED DRAWER — PULL MARKED BOOK');
+    else if(relicParent(obj)){const rp=relicParent(obj);lbl='[ CLICK ]  PICK UP '+RELICS[rp.userData.relicId].name.toUpperCase();}
+    else if(obj.userData.isSlot||obj===altarTopMesh)lbl=S.held?'[ CLICK ]  PLACE ON ALTAR':'Approach the altar';
+    else if(obj.userData.isKeypad)lbl=KP.unlocked?'UNLOCKED':'[ CLICK ]  ENTER CODE — 4 DIGITS';
+  }
+
+  setHandReach(!!lbl);
+  prmEl.textContent=lbl;if(lbl)prmEl.classList.add('on');else prmEl.classList.remove('on');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  3D HANDS — attached to camera, visible in first-person
+//  Left hand: idle / reach gesture
+//  Right hand: idle / hold relic / grab gesture
+// ══════════════════════════════════════════════════════════════
+
+// Skin-tone materials
+const skinM   =LB({color:0xc8885a});  // main skin
+const skinDkM =LB({color:0xb07040});  // darker crease/palm
+const nailM   =LB({color:0xd4a878});  // fingernail
+const sleeveM =LB({color:0x1a0c06});  // dark sleeve cuff
+
+function buildHand(isRight){
+  const root=G();
+
+  // Wrist / palm base
+  const palm=BX(.12,.06,.16,skinM);palm.position.set(0,0,0);root.add(palm);
+  // Palm crease line (darker strip across middle)
+  const crease=BX(.12,.005,.08,skinDkM);crease.position.set(0,.032,-.01);root.add(crease);
+  // Sleeve cuff
+  const cuff=CY(.072,.078,.07,10,sleeveM);cuff.rotation.x=Math.PI/2;cuff.position.set(0,0,.09);root.add(cuff);
+
+  // Thumb
+  const thumbRoot=G();
+  const tb1=CY(.022,.02,.06,7,skinM);tb1.position.y=.03;thumbRoot.add(tb1);
+  const tb2=CY(.018,.016,.05,7,skinM);tb2.position.y=.085;thumbRoot.add(tb2);
+  const tbTip=SP(.018,6,skinM);tbTip.position.y=.115;thumbRoot.add(tbTip);
+  const tbNail=BX(.014,.004,.022,nailM);tbNail.position.set(0,.116,.008);thumbRoot.add(tbNail);
+  thumbRoot.position.set(isRight?.072:-.072,-.01,-.04);
+  thumbRoot.rotation.z=isRight?-.55:.55;thumbRoot.rotation.x=.2;
+  root.add(thumbRoot);
+
+  // 4 fingers
+  const fingerDefs=[
+    {x:isRight? .052:-.052, len:[.072,.062,.048], thick:.022, name:'index'},
+    {x:isRight? .018:-.018, len:[.08, .068,.052], thick:.024, name:'middle'},
+    {x:isRight?-.016: .016, len:[.074,.062,.048], thick:.022, name:'ring'},
+    {x:isRight?-.050: .050, len:[.058,.048,.038], thick:.019, name:'pinky'},
+  ];
+  const fingerGroups=[];
+  fingerDefs.forEach(fd=>{
+    const fg=G();
+    let y=.032;
+    fd.len.forEach((segLen,si)=>{
+      const seg=CY(fd.thick*(1-.12*si)*.5,fd.thick*(1-.12*si)*.5,segLen,7,skinM);
+      seg.position.y=y+segLen/2;fg.add(seg);
+      // Knuckle bump
+      const knk=SP(fd.thick*.52,5,skinDkM);knk.position.y=y;fg.add(knk);
+      // Nail on last segment
+      if(si===2){
+        const nl=BX(fd.thick*.55,.003,segLen*.4,nailM);nl.position.set(0,y+segLen*.7,fd.thick*.45);fg.add(nl);
+      }
+      y+=segLen;
+    });
+    // Fingertip cap
+    const tip=SP(fd.thick*.45,6,skinM);tip.position.y=y;fg.add(tip);
+    fg.position.set(fd.x,0,-.075);
+    root.add(fg);fingerGroups.push(fg);
+  });
+
+  root.userData={fingerGroups,thumbRoot,isRight};
+  return root;
+}
+
+const handL=buildHand(false); // left hand
+const handR=buildHand(true);  // right hand
+scene.add(handL);scene.add(handR);
+
+// Hand resting offsets relative to camera (local space)
+// Right hand: lower-right of screen
+// Left hand: lower-left of screen
+const H={
+  // State
+  grabT:0,       // grab animation timer 0→1
+  grabbing:false,
+  reachT:0,      // reach-forward animation 0→1
+  reaching:false,
+  walkT:0,       // walking sway timer
+  // Prealloc vectors
+  rPos:new THREE.Vector3(),
+  lPos:new THREE.Vector3(),
+  rOff:new THREE.Vector3(),
+  lOff:new THREE.Vector3(),
+  quat:new THREE.Quaternion(),
+  euler:new THREE.Euler(),
+};
+
+function updateHands(dt,moving,interacting){
+  if(!started||KP.active){handL.visible=false;handR.visible=false;return;}
+  handL.visible=true;handR.visible=true;
+
+  // Walking bob
+  if(moving) H.walkT+=dt*6.5;
+  const walkBob =moving?Math.sin(H.walkT)*.018:0;
+  const walkSway=moving?Math.cos(H.walkT*.5)*.008:0;
+
+  // Grab animation
+  if(H.grabbing&&H.grabT<1) H.grabT=Math.min(1,H.grabT+dt*8);
+  if(!H.grabbing&&H.grabT>0)H.grabT=Math.max(0,H.grabT-dt*6);
+
+  // Reach animation (hover over interactable)
+  if(H.reaching&&H.reachT<1)H.reachT=Math.min(1,H.reachT+dt*5);
+  if(!H.reaching&&H.reachT>0)H.reachT=Math.max(0,H.reachT-dt*5);
+
+  const reach=H.reachT*.06;
+  const grab =H.grabT;
+
+  // ── Camera world transform ────────────────────────────────
+  cam.getWorldQuaternion(H.quat);
+
+  // ── RIGHT HAND ────────────────────────────────────────────
+  // Base offset: lower-right, slightly forward
+  H.rOff.set(.24+walkSway, -.32+walkBob, -.45-reach);
+  H.rOff.applyQuaternion(H.quat);
+  handR.position.copy(cam.position).add(H.rOff);
+
+  // Rotation — tilted to look like a natural hand hold
+  H.euler.set(
+    -.18 - reach*.4 + grab*.2,   // pitch: tilt forward on reach/grab
+     yaw + Math.PI,               // yaw: follow camera
+     -.18 + walkSway*2            // slight roll
+  );
+  handR.rotation.copy(H.euler);
+  // Finger curl when grabbing
+  const fingerCurl=grab*.55;
+  handR.userData.fingerGroups.forEach((fg,i)=>{
+    fg.rotation.x=fingerCurl*(1+i*.08);// stagger curl per finger
+  });
+  handR.userData.thumbRoot.rotation.x=.2+grab*.4;
+  handR.userData.thumbRoot.rotation.z=-(.55-grab*.3);
+
+  // ── LEFT HAND ─────────────────────────────────────────────
+  H.lOff.set(-.24-walkSway, -.32-walkBob*.7, -.45);
+  H.lOff.applyQuaternion(H.quat);
+  handL.position.copy(cam.position).add(H.lOff);
+
+  H.euler.set(
+    -.18,
+     yaw + Math.PI,
+     .18 - walkSway*2
+  );
+  handL.rotation.copy(H.euler);
+  // Left hand relaxed curl (slightly curled even at rest)
+  const lCurl=.18+grab*.22;
+  handL.userData.fingerGroups.forEach((fg,i)=>{
+    fg.rotation.x=lCurl*(1+i*.06);
+  });
+  handL.userData.thumbRoot.rotation.x=.2+grab*.15;
+  handL.userData.thumbRoot.rotation.z=.55-grab*.15;
+
+  // ── When holding relic — right hand goes to relic position ─
+  if(S.held){
+    // Relic already moves with cam, right hand hugs it
+    H.rOff.set(.14,-.22,-.42);
+    H.rOff.applyQuaternion(H.quat);
+    handR.position.copy(cam.position).add(H.rOff);
+    handR.rotation.set(-.28,yaw+Math.PI,-.12);
+    // Fully curled fingers around relic
+    handR.userData.fingerGroups.forEach((fg,i)=>{fg.rotation.x=.75+i*.06;});
+    handR.userData.thumbRoot.rotation.x=.55;
+    handR.userData.thumbRoot.rotation.z=-.22;
+  }
+}
+
+// Expose hand state setters to interaction code
+function setHandGrab(on){H.grabbing=on;}
+function setHandReach(on){H.reaching=on;}
+
+// ══════════════════════════════════════════════════════════════
+//  10-MINUTE COUNTDOWN TIMER
+// ══════════════════════════════════════════════════════════════
+const TOTAL_SECONDS=600; // 10 minutes
+let timeLeft=TOTAL_SECONDS;
+let timerStarted=false;
+let timerInterval=null;
+const timerEl=document.getElementById('timer');
+
+function startTimer(){
+  if(timerStarted)return;
+  timerStarted=true;
+  timerInterval=setInterval(()=>{
+    if(!started||S.won||KP.unlocked)return;
+    timeLeft--;
+    const m=Math.floor(timeLeft/60);
+    const s=timeLeft%60;
+    timerEl.textContent=`⏱ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    // Danger zone — last 60 seconds
+    if(timeLeft<=60) timerEl.classList.add('danger');
+    // Flash screen every 10s in last minute
+    if(timeLeft<=60&&timeLeft%10===0&&timeLeft>0){
+      const bo=document.getElementById('blood');
+      bo.style.background='rgba(100,0,0,.35)';bo.style.transition='background .1s';
+      setTimeout(()=>{bo.style.background='rgba(0,0,0,0)';bo.style.transition='background 2s';},250);
+    }
+    if(timeLeft<=0){
+      clearInterval(timerInterval);
+      triggerTimeUp();
+    }
+  },1000);
+}
+
+function triggerTimeUp(){
+  if(S.won||KP.unlocked)return;
+  // Kill all lights dramatically
+  zoneLights.forEach(l=>{l.intensity=0;});
+  mainFill.intensity=0;altarFill.intensity=0;
+  // Total darkness flash
+  const bo=document.getElementById('blood');
+  bo.style.background='rgba(0,0,0,1)';bo.style.transition='background .5s';
+  setTimeout(()=>{
+    document.getElementById('timeup').style.display='flex';
+  },600);
+  // Screech sound
+  const g=AC.createGain();g.gain.value=.4;g.connect(AC.destination);
+  const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=400;o.connect(g);o.start();
+  o.frequency.exponentialRampToValueAtTime(40,AC.currentTime+1.2);
+  g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+1.2);
+  setTimeout(()=>o.stop(),1300);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ANIMATE
+// ══════════════════════════════════════════════════════════════
+const clock=new THREE.Clock();let t=0;
+const _fwd=new THREE.Vector3(),_rgt=new THREE.Vector3(),_dir=new THREE.Vector3(),_off=new THREE.Vector3();
+
+function animate(){
+  requestAnimationFrame(animate);if(!started)return;
+  const dt=Math.min(clock.getDelta(),.05);t+=dt;
+  cam.quaternion.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
+
+  _fwd.set(-Math.sin(yaw),0,-Math.cos(yaw));
+  _rgt.set(Math.cos(yaw),0,-Math.sin(yaw));
+  _dir.set(0,0,0);
+  if(keys.KeyW||keys.ArrowUp)   _dir.addScaledVector(_fwd,1);
+  if(keys.KeyS||keys.ArrowDown) _dir.addScaledVector(_fwd,-1);
+  if(keys.KeyA||keys.ArrowLeft) _dir.addScaledVector(_rgt,-1);
+  if(keys.KeyD||keys.ArrowRight)_dir.addScaledVector(_rgt,1);
+  const moving=_dir.lengthSq()>0;
+  if(moving){
+    _dir.normalize();cam.position.addScaledVector(_dir,3.5*dt);
+    const inExterior=KP.unlocked&&cam.position.z<CZ2-5.4;
+    const xLimit=inExterior?42:4.7;
+    cam.position.x=Math.max(-xLimit,Math.min(xLimit,cam.position.x));
+    const zMin=KP.unlocked ? exitZ-62 : (S.corridorUnlocked ? -RD/2-CD-.5 : -6.7);
+    cam.position.z=Math.max(zMin,Math.min(5.0,cam.position.z));
+    cam.position.y=1.65;
+  }
+  if(KP.unlocked&&cam.position.z<exitZ-.7)beginOutsideFinale();
+
+  // Held relic floats in front — right hand position
+  if(S.held){
+    _off.set(.14,-.22,-.44).applyQuaternion(cam.quaternion);
+    S.held.position.copy(cam.position).add(_off);
+    S.held.rotation.y=t*1.4;
+    if(S.held.userData.relicId==='amulet')S.held.rotation.x=Math.PI/2+Math.sin(t*2)*.12;
+  }
+
+  // Hover + hand state — checkHover drives setHandReach internally
+  if(S.locked&&!KP.active){
+    setHandGrab(!!S.held);
+    checkHover(); // sets hand reach based on proximity+ray
+  } else {
+    setHandReach(false);
+    prmEl.classList.remove('on');
+  }
+
+  // Update hand positions/rotations every frame
+  updateHands(dt,moving,false);
+
+  // Zone light flicker
+  const bi=S.placed===0?3.2:S.placed===1?2.2:1.5;
+  zoneLights.forEach((l,i)=>l.intensity=bi+Math.sin(t*3.8+i*1.5)*.5);
+  mainFill.intensity=3.2+Math.sin(t*1.1)*.3;
+
+  // Flame scale wobble
+  floorFlames.forEach((f,i)=>f.scale.setScalar(.82+Math.sin(t*5.8+i)*.32));
+  lantGrp.rotation.z=Math.sin(t*.36)*.05;
+
+  // Relic glow pulse
+  Object.values(relicGlows).forEach(gl=>{if(gl.intensity>0)gl.intensity=2.2+Math.sin(t*2.8)*.8;});
+
+  // Storm lightning
+  stormLight.intensity=.05+Math.max(0,Math.sin(t*.2)>.93?Math.random()*6:0);
+  if(exterior.visible){
+    exterior.children.forEach((c,i)=>{
+      if(c.geometry&&c.geometry.type==='BoxGeometry'&&c.material?.transparent){
+        c.position.x+=Math.sin(t*.4+i)*.002;
+      }
+    });
+  }
+
+  // Slot ring + socket glow pulse — orange→yellow when empty, green when filled
+  slotRingMats.forEach((rm,i)=>{
+    if(!S.slots[i]){
+      const v=.5+.5*Math.sin(t*3.2+i*1.2);
+      if(S.held&&i===S.placed){
+        const ok=S.held.userData.relicId===S.order[i];
+        if(ok){
+          rm.color.setRGB(.05,.95,.35+v*.4);
+          socketGlows[i].color.setHex(0x00ff66);
+          socketGlows[i].intensity=1.1+v*.7;
+        } else {
+          rm.color.setRGB(1,.05,.02);
+          socketGlows[i].color.setHex(0xff1100);
+          socketGlows[i].intensity=1.0+v*.5;
+        }
+      } else {
+        rm.color.setRGB(.95+v*.05,.3+v*.55,0);
+        socketGlows[i].color.setHex(0xff8800);
+        socketGlows[i].intensity=.4+v*.4;
+      }
+    } else {
+      socketGlows[i].intensity=.3+Math.sin(t*2+i)*.15;
+    }
+  });
+
+  // Door swing open
+  if(doorOpen&&doorAngle<Math.PI*.56){
+    doorAngle+=dt*.88;doorPanel.rotation.y=Math.min(doorAngle,Math.PI*.56);
+    exitLight.intensity=10+Math.sin(t*2.8)*.8;
+  }
+
+  // Keypad glow pulse
+  if(KP.unlocked){kpGlow.intensity=1.5+Math.sin(t*4)*.5;vLight.intensity=3+Math.sin(t*1.5)*.5;moonGlow.intensity=3.2+Math.sin(t*.8)*.25;}
+
+  renderer.render(scene,cam);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  START
+// ══════════════════════════════════════════════════════════════
+document.getElementById('enter').addEventListener('click',()=>{
+  AC.resume();startDrone();
+  document.getElementById('overlay').style.display='none';
+  started=true;clock.start();
+  requestGamePointerLock();
+  animate();
+  startTimer();
+  setTimeout(()=>showHint('The chamber seals. Find the key, match the wardrobe runes, and pull the marked book. Then place all 3 relics into their altar molds.'),900);
+});
+</script>
+</body>
+</html>

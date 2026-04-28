@@ -148,7 +148,7 @@ This enables:
 | Niyam Momaya | nkm66 | State machine, physics, horror system, Blender assets (ritual table, relics ×3) |
 | Aryan Nagwekar | an1262 | VR interactions, A-Frame scene, WebXR input, Blender assets (demon lock, mirror frame, desert environment) |
 
-**ECE 576 — Virtual Reality · Rutgers University · Spring 2025**
+**ECE 576 — Virtual Reality · Rutgers University · Spring 2026**
 
 ---
 

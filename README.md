@@ -62,7 +62,7 @@ python -m http.server 8000
 ```
 Then open `http://localhost:8000/index.html`
 
-> ⚠️ Opening `index.html` directly as a `file://` URL will **not** work — A-Frame and ES modules require a server.
+> ⚠️ Opening `index.html` directly as a `file://` URL will **not** work — A-Frame requires a server.
 
 ---
 
@@ -71,31 +71,19 @@ Then open `http://localhost:8000/index.html`
 ```
 cursed-chamber/
 │
-├── index.html              ← Entry point. Open this in your browser.
+├── index.html          ← Entry point. Open this in your browser.
 │
-├── src/
-│   ├── main.js             ← Scene init, A-Frame component registration
-│   ├── puzzle.js           ← Ritual state machine (all game logic lives here)
-│   ├── interactions.js     ← Grab, inspect, place, drawer pull, rune-lock
-│   ├── horror.js           ← Lighting phases, mirror distortion, escalation
-│   └── audio.js            ← Positional audio manager (Resonance Audio)
+├── index.js            ← All game logic in one file: scene setup,
+│                          puzzle state machine, VR interactions,
+│                          physics (Cannon-ES), horror escalation,
+│                          audio manager, rune-lock puzzle, desert
+│                          ending sequence
 │
-├── assets/
-│   ├── models/             ← All GLTF models (Blender exports)
-│   │   ├── ritual_table.glb
-│   │   ├── demon_lock.glb
-│   │   ├── mirror_frame.glb
-│   │   ├── skull_relic.glb
-│   │   ├── amulet_relic.glb
-│   │   ├── tome_relic.glb
-│   │   ├── iron_chest.glb
-│   │   ├── wardrobe.glb
-│   │   ├── bookshelf.glb
-│   │   └── ...
-│   │
-│   ├── textures/           ← PBR texture maps (albedo, normal, roughness)
-│   │
-│   └── audio/              ← Ambient loops, impact sounds, horror cues
+├── artifacts.blend     ← Blender source file with all custom 3D
+│                          assets: ritual table, demon lock, mirror
+│                          frame, skull, amulet, tome, iron chest,
+│                          wardrobe, bookshelf, desert environment
+│                          (obelisks, pyramids, sand terrain)
 │
 └── README.md
 ```
@@ -110,9 +98,9 @@ cursed-chamber/
 | [Cannon-ES](https://github.com/pmndrs/cannon-es) | 0.20 | Physics — rigid bodies, constraints, impulses |
 | [Three.js](https://threejs.org) | r146 | Underlying WebGL renderer (via A-Frame) |
 | [A-Frame Resonance Audio](https://github.com/resonance-audio/resonance-audio-web-sdk) | — | 3D positional audio in VR |
-| Blender 3.6 | — | All custom 3D assets (GLTF 2.0 export) |
+| Blender 3.6 | — | All custom 3D assets, GLTF 2.0 export |
 
-No build step. No bundler. Pure ES modules — it just runs.
+No build step. No bundler. It just runs.
 
 ---
 
@@ -139,7 +127,7 @@ No build step. No bundler. Pure ES modules — it just runs.
 
 ## 🛠️ Debug / Dev Shortcuts
 
-Open `src/puzzle.js` and set at the top:
+In `index.js`, find this line near the top and set it to `true`:
 
 ```js
 const DEBUG_MODE = true;
